@@ -8249,55 +8249,6 @@ Elm.Json.Decode.make = function (_elm) {
                                     ,andThen: andThen
                                     ,value: value
                                     ,customDecoder: customDecoder};
-};Elm.Set = Elm.Set || {};
-Elm.Set.make = function (_elm) {
-   "use strict";
-   _elm.Set = _elm.Set || {};
-   if (_elm.Set.values) return _elm.Set.values;
-   var _U = Elm.Native.Utils.make(_elm),$Basics = Elm.Basics.make(_elm),$Dict = Elm.Dict.make(_elm),$List = Elm.List.make(_elm);
-   var _op = {};
-   var foldr = F3(function (f,b,_p0) {    var _p1 = _p0;return A3($Dict.foldr,F3(function (k,_p2,b) {    return A2(f,k,b);}),b,_p1._0);});
-   var foldl = F3(function (f,b,_p3) {    var _p4 = _p3;return A3($Dict.foldl,F3(function (k,_p5,b) {    return A2(f,k,b);}),b,_p4._0);});
-   var toList = function (_p6) {    var _p7 = _p6;return $Dict.keys(_p7._0);};
-   var size = function (_p8) {    var _p9 = _p8;return $Dict.size(_p9._0);};
-   var member = F2(function (k,_p10) {    var _p11 = _p10;return A2($Dict.member,k,_p11._0);});
-   var isEmpty = function (_p12) {    var _p13 = _p12;return $Dict.isEmpty(_p13._0);};
-   var Set_elm_builtin = function (a) {    return {ctor: "Set_elm_builtin",_0: a};};
-   var empty = Set_elm_builtin($Dict.empty);
-   var singleton = function (k) {    return Set_elm_builtin(A2($Dict.singleton,k,{ctor: "_Tuple0"}));};
-   var insert = F2(function (k,_p14) {    var _p15 = _p14;return Set_elm_builtin(A3($Dict.insert,k,{ctor: "_Tuple0"},_p15._0));});
-   var fromList = function (xs) {    return A3($List.foldl,insert,empty,xs);};
-   var map = F2(function (f,s) {    return fromList(A2($List.map,f,toList(s)));});
-   var remove = F2(function (k,_p16) {    var _p17 = _p16;return Set_elm_builtin(A2($Dict.remove,k,_p17._0));});
-   var union = F2(function (_p19,_p18) {    var _p20 = _p19;var _p21 = _p18;return Set_elm_builtin(A2($Dict.union,_p20._0,_p21._0));});
-   var intersect = F2(function (_p23,_p22) {    var _p24 = _p23;var _p25 = _p22;return Set_elm_builtin(A2($Dict.intersect,_p24._0,_p25._0));});
-   var diff = F2(function (_p27,_p26) {    var _p28 = _p27;var _p29 = _p26;return Set_elm_builtin(A2($Dict.diff,_p28._0,_p29._0));});
-   var filter = F2(function (p,_p30) {    var _p31 = _p30;return Set_elm_builtin(A2($Dict.filter,F2(function (k,_p32) {    return p(k);}),_p31._0));});
-   var partition = F2(function (p,_p33) {
-      var _p34 = _p33;
-      var _p35 = A2($Dict.partition,F2(function (k,_p36) {    return p(k);}),_p34._0);
-      var p1 = _p35._0;
-      var p2 = _p35._1;
-      return {ctor: "_Tuple2",_0: Set_elm_builtin(p1),_1: Set_elm_builtin(p2)};
-   });
-   return _elm.Set.values = {_op: _op
-                            ,empty: empty
-                            ,singleton: singleton
-                            ,insert: insert
-                            ,remove: remove
-                            ,isEmpty: isEmpty
-                            ,member: member
-                            ,size: size
-                            ,foldl: foldl
-                            ,foldr: foldr
-                            ,map: map
-                            ,filter: filter
-                            ,partition: partition
-                            ,union: union
-                            ,intersect: intersect
-                            ,diff: diff
-                            ,toList: toList
-                            ,fromList: fromList};
 };Elm.Native.Regex = {};
 Elm.Native.Regex.make = function(localRuntime) {
 	localRuntime.Native = localRuntime.Native || {};
@@ -11912,6 +11863,7 @@ Elm.Css.make = function (_elm) {
       var mediaRuleFromStyleBlocks = A2($Css$Preprocess.MediaRule,mediaQueries,extractStyleBlocks(snippetDeclarations));
       return $Css$Preprocess.Snippet(A2($List._op["::"],mediaRuleFromStyleBlocks,nestedMediaRules(snippetDeclarations)));
    });
+   var displayFlex = A2(property,"display","flex");
    var prop4 = F5(function (key,argA,argB,argC,argD) {
       return A2(property,key,A2($String.join," ",_U.list([argA.value,argB.value,argC.value,argD.value])));
    });
@@ -13000,6 +12952,7 @@ Elm.Css.make = function (_elm) {
                             ,rad: rad
                             ,grad: grad
                             ,turn: turn
+                            ,displayFlex: displayFlex
                             ,flex: flex
                             ,flex2: flex2
                             ,flex3: flex3
@@ -13445,14 +13398,77 @@ Elm.Types.make = function (_elm) {
    $Maybe = Elm.Maybe.make(_elm),
    $Native$Types = Elm.Native.Types.make(_elm),
    $Result = Elm.Result.make(_elm),
-   $Signal = Elm.Signal.make(_elm);
+   $Signal = Elm.Signal.make(_elm),
+   $String = Elm.String.make(_elm);
    var _op = {};
    var unsafeGet = $Native$Types.unsafeGet;
    var get = $Native$Types.get;
    var keys = $Native$Types.keys;
    var toValue = $Native$Types.toValue;
-   var suggestType = $Native$Types.makeGuessAtType;
-   return _elm.Types.values = {_op: _op,suggestType: suggestType,toValue: toValue,keys: keys,get: get,unsafeGet: unsafeGet};
+   var knownTypesToString = function (known) {
+      var _p0 = known;
+      switch (_p0.ctor)
+      {case "Unknown": return "_Unknown";
+         case "ComplexType": return "ComplexType";
+         case "ResolvedType": return $String.trim(_p0._0);
+         case "IntType": return "IntType";
+         case "FloatType": return "Float";
+         case "StringType": return "String";
+         case "BoolType": return "Bool";
+         case "ListType": return A2($Basics._op["++"],"List ",knownTypesToString(_p0._0));
+         default: return A2($Basics._op["++"],"Maybe ",knownTypesToString(_p0._0));}
+   };
+   var Unknown = {ctor: "Unknown"};
+   var ResolvedType = function (a) {    return {ctor: "ResolvedType",_0: a};};
+   var ComplexType = {ctor: "ComplexType"};
+   var StringType = {ctor: "StringType"};
+   var BoolType = {ctor: "BoolType"};
+   var FloatType = {ctor: "FloatType"};
+   var IntType = {ctor: "IntType"};
+   var ListType = function (a) {    return {ctor: "ListType",_0: a};};
+   var MaybeType = function (a) {    return {ctor: "MaybeType",_0: a};};
+   var typeToKnownTypes = function (string) {
+      var _p1 = string;
+      switch (_p1)
+      {case "Int": return IntType;
+         case "Float": return FloatType;
+         case "Bool": return BoolType;
+         case "String": return StringType;
+         case "Something": return ComplexType;
+         default: var _p2 = $String.words(string);
+           if (_p2.ctor === "[]") {
+                 return Unknown;
+              } else {
+                 if (_p2._1.ctor === "[]") {
+                       return Unknown;
+                    } else {
+                       var _p4 = _p2._1;
+                       var _p3 = _p2._0;
+                       switch (_p3)
+                       {case "Maybe": return MaybeType(typeToKnownTypes(A2($String.join," ",_p4)));
+                          case "List": return ListType(typeToKnownTypes(A2($String.join," ",_p4)));
+                          default: return Unknown;}
+                    }
+              }}
+   };
+   var suggestType = function (value) {    return typeToKnownTypes($Native$Types.makeGuessAtType(value));};
+   return _elm.Types.values = {_op: _op
+                              ,MaybeType: MaybeType
+                              ,ListType: ListType
+                              ,IntType: IntType
+                              ,FloatType: FloatType
+                              ,BoolType: BoolType
+                              ,StringType: StringType
+                              ,ComplexType: ComplexType
+                              ,ResolvedType: ResolvedType
+                              ,Unknown: Unknown
+                              ,typeToKnownTypes: typeToKnownTypes
+                              ,knownTypesToString: knownTypesToString
+                              ,suggestType: suggestType
+                              ,toValue: toValue
+                              ,keys: keys
+                              ,get: get
+                              ,unsafeGet: unsafeGet};
 };Elm.TypeAlias = Elm.TypeAlias || {};
 Elm.TypeAlias.make = function (_elm) {
    "use strict";
@@ -13466,7 +13482,6 @@ Elm.TypeAlias.make = function (_elm) {
    $Maybe = Elm.Maybe.make(_elm),
    $Regex = Elm.Regex.make(_elm),
    $Result = Elm.Result.make(_elm),
-   $Set = Elm.Set.make(_elm),
    $Signal = Elm.Signal.make(_elm),
    $String = Elm.String.make(_elm),
    $Types = Elm.Types.make(_elm);
@@ -13474,12 +13489,12 @@ Elm.TypeAlias.make = function (_elm) {
    var getFieldNameAndType = function (string) {
       var _p0 = A2($String.split,":",string);
       if (_p0.ctor === "[]") {
-            return {ctor: "_Tuple2",_0: "",_1: ""};
+            return {name: "",base: "",typeName: $Types.Unknown,value: $Json$Encode.string("")};
          } else {
             if (_p0._1.ctor === "[]") {
-                  return {ctor: "_Tuple2",_0: _p0._0,_1: ""};
+                  return {name: _p0._0,base: "",typeName: $Types.Unknown,value: $Json$Encode.string("")};
                } else {
-                  return {ctor: "_Tuple2",_0: $String.trim(_p0._0),_1: $String.trim(_p0._1._0)};
+                  return {name: $String.trim($String.toLower(_p0._0)),base: "",typeName: $Types.ResolvedType(_p0._1._0),value: $Json$Encode.string("")};
                }
          }
    };
@@ -13491,7 +13506,9 @@ Elm.TypeAlias.make = function (_elm) {
             return A2($Debug.log,"no matches",_U.list([]));
          } else {
             if (_p2._1.ctor === "[]") {
-                  return A2($List.map,$String.trim,A2($String.split,",",A2($String.join,"",A2($List.map,$Maybe.withDefault(""),_p2._0.submatches))));
+                  return A2($List.map,
+                  $String.trim,
+                  A2($String.split,",",A2($String.join,"",A2($List.map,$String.trim,A2($List.map,$Maybe.withDefault(""),_p2._0.submatches)))));
                } else {
                   return A2($Debug.log,"too many matches",_U.list([]));
                }
@@ -13510,97 +13527,133 @@ Elm.TypeAlias.make = function (_elm) {
                }
          }
    };
-   var fieldFormat = function (_p4) {    var _p5 = _p4;return A2($Basics._op["++"],_p5._0,A2($Basics._op["++"]," : ",_p5._1));};
-   var aliasFormat = F2(function (aliasName,fields) {
-      var joinedFields = A2($String.join,"\n    , ",A2($List.map,fieldFormat,fields));
-      return A2($String.join,"",_U.list(["type alias ",aliasName," =\n    { ",joinedFields,"\n    }"]));
-   });
+   var isAlreadyAName = F2(function (name,aliases) {    return A2($List.member,name,A2($List.map,function (_) {    return _.name;},aliases));});
+   var gatherAliases = function (items) {    return A2($List.filter,function (item) {    return _U.eq(item.typeName,$Types.ComplexType);},items);};
    var capitalize = function (name) {
-      var _p6 = $String.toList(name);
-      if (_p6.ctor === "[]") {
+      var _p4 = $String.toList(name);
+      if (_p4.ctor === "[]") {
             return "";
          } else {
-            return A2($Basics._op["++"],$String.toUpper($String.fromChar(_p6._0)),$String.fromList(_p6._1));
+            return A2($Basics._op["++"],$String.toUpper($String.fromChar(_p4._0)),$String.fromList(_p4._1));
          }
    };
-   var createTypeAlias = F2(function (stuff,aliasName) {
-      var update = F2(function (_p7,extras) {
-         var _p8 = _p7;
-         var _p9 = _p8._1;
-         if (_p9 === "Something") {
-               return A2($Basics._op["++"],A2(createTypeAlias,_p8._2,capitalize(_p8._0)),extras);
-            } else {
-               return extras;
-            }
+   var fullyQualifiedName = function (field) {    return A2($Basics._op["++"],field.base,capitalize(field.name));};
+   var fieldFormat = function (field) {
+      var _p5 = field.typeName;
+      if (_p5.ctor === "ComplexType") {
+            return A2($Basics._op["++"],field.name,A2($Basics._op["++"]," : ",fullyQualifiedName(field)));
+         } else {
+            return A2($Basics._op["++"],field.name,A2($Basics._op["++"]," : ",$Types.knownTypesToString(field.typeName)));
+         }
+   };
+   var resolveConflicts = function (items) {
+      var names = A2($List.map,function (_) {    return _.name;},items);
+      var count = function (incomingKey) {    return $List.length(A2($List.filter,function (name) {    return _U.eq(name,incomingKey);},names));};
+      var update = F2(function (field,fine) {
+         return _U.cmp(count(field.name),1) > -1 ? A2($List._op["::"],
+         _U.update(field,{typeName: $Types.ResolvedType(fullyQualifiedName(field))}),
+         fine) : A2($List._op["::"],_U.update(field,{typeName: $Types.ResolvedType(field.name)}),fine);
       });
-      var fields = A2($List.map,
-      function (key) {
-         var value = A2($Types.unsafeGet,key,stuff);
-         return {ctor: "_Tuple3",_0: key,_1: $Types.suggestType(value),_2: value};
-      },
-      $Types.keys(stuff));
-      var fixedFields = A2($List.map,
-      function (_p10) {
-         var _p11 = _p10;
-         var _p14 = _p11._1;
-         var _p13 = _p11._0;
-         var _p12 = _p14;
-         if (_p12 === "Something") {
-               return {ctor: "_Tuple2",_0: _p13,_1: capitalize(_p13)};
-            } else {
-               return {ctor: "_Tuple2",_0: _p13,_1: _p14};
-            }
-      },
-      fields);
-      var extraAliases = A3($List.foldl,update,_U.list([]),fields);
-      return $Set.toList($Set.fromList(A2($List._op["::"],A2(aliasFormat,aliasName,fixedFields),extraAliases)));
+      return A3($List.foldl,update,_U.list([]),items);
+   };
+   var createTypeAlias = F3(function (knownNames,fields,field) {
+      var currentFields = A2($List.filter,function (item) {    return _U.eq(item.base,fullyQualifiedName(field));},fields);
+      return {name: field.name,fields: currentFields,base: field.base,typeName: field.typeName};
    });
+   var aliasFormat = function (alias) {
+      var joinedFields = A2($String.join,"\n    , ",A2($List.map,fieldFormat,alias.fields));
+      return A2($String.join,"",_U.list(["type alias ",capitalize($Types.knownTypesToString(alias.typeName))," =\n    { ",joinedFields,"\n    }"]));
+   };
+   var generateFields = F2(function (stuff,base) {
+      return $List.concat(A2($List.map,
+      function (key) {
+         var newBase = capitalize(A2($Basics._op["++"],base,capitalize(key)));
+         var value = A2($Types.unsafeGet,key,stuff);
+         var name = $Types.suggestType(value);
+         var field = {base: $String.trim(base),name: $String.trim(key),typeName: name,value: value};
+         return _U.eq(name,$Types.ComplexType) ? A2($Basics._op["++"],A2(generateFields,value,newBase),_U.list([field])) : _U.list([field]);
+      },
+      $Types.keys(stuff)));
+   });
+   var createTypeAliases = F3(function (stuff,aliasName,base) {
+      var topLevel = {name: aliasName,base: "",typeName: $Types.ComplexType,value: stuff};
+      var fields = A2(F2(function (x,y) {    return A2($List._op["::"],x,y);}),topLevel,A2(generateFields,stuff,aliasName));
+      var creator = F2(function (field,aliases) {
+         var knownNames = A2($List.map,function (_) {    return _.name;},aliases);
+         var alias = A3(createTypeAlias,knownNames,fields,field);
+         return A2($List._op["::"],alias,aliases);
+      });
+      var aliases = A3($List.foldl,creator,_U.list([]),resolveConflicts(gatherAliases(fields)));
+      return aliases;
+   });
+   var Field = F4(function (a,b,c,d) {    return {name: a,typeName: b,base: c,value: d};});
+   var TypeAlias = F4(function (a,b,c,d) {    return {name: a,fields: b,base: c,typeName: d};});
    var knownDecoders = _U.list(["maybe","list","int","float","bool","string"]);
    var guessDecoder = function (typeName) {
-      return A2($List.member,typeName,knownDecoders) ? typeName : A2($Basics._op["++"],"decode",capitalize(typeName));
+      return A2($List.member,$String.toLower(typeName),knownDecoders) ? A2($Basics._op["++"],"Json.Decode.",$String.toLower(typeName)) : A2($Basics._op["++"],
+      "decode",
+      capitalize(typeName));
    };
-   var formatDecoderField = function (_p15) {
-      var _p16 = _p15;
+   var formatDecoderField = function (field) {
       return A2($Basics._op["++"],
-      "|: (",
-      A2($Basics._op["++"],_p16._0,A2($Basics._op["++"]," := ",A2($Basics._op["++"],guessDecoder($String.toLower(_p16._1)),")"))));
+      "|: (\"",
+      A2($Basics._op["++"],field.name,A2($Basics._op["++"],"\" := ",A2($Basics._op["++"],guessDecoder($Types.knownTypesToString(field.typeName)),")"))));
    };
    var createDecoder = function (string) {
-      var withoutNewlines = A2($Debug.log,"n",A4($Regex.replace,$Regex.All,$Regex.regex("\\n"),function (_p17) {    return "";},string));
-      var typeName = A2($Maybe.withDefault,"",A2($Debug.log,"alias",getTypeAliasName(withoutNewlines)));
+      var withoutNewlines = A4($Regex.replace,$Regex.All,$Regex.regex("\\n"),function (_p6) {    return "";},string);
+      var typeName = capitalize(A2($Maybe.withDefault,"",getTypeAliasName(withoutNewlines)));
       var fields = A2($String.join,"\n        ",A2($List.map,formatDecoderField,A2($List.map,getFieldNameAndType,getFields(withoutNewlines))));
-      return A2($String.join,"",_U.list(["decode",typeName," : Decoder ",typeName,"\ndecode",typeName," =\n succeed ",typeName,"\n        ",fields]));
+      return A2($String.join,
+      "",
+      _U.list(["decode",typeName," : Json.Decode.Decoder ",typeName,"\ndecode",typeName," =\n    Json.Decode.succeed ",typeName,"\n        ",fields]));
    };
    var guessEncoder = function (typeName) {
-      return A2($List.member,typeName,knownDecoders) ? typeName : A2($Basics._op["++"],"encode",capitalize(typeName));
+      return A2($List.member,$String.toLower(typeName),knownDecoders) ? A2($Basics._op["++"],"Json.Encode.",$String.toLower(typeName)) : A2($Basics._op["++"],
+      "encode",
+      capitalize(typeName));
    };
-   var formatEncoderField = function (_p18) {
-      var _p19 = _p18;
-      var _p20 = _p19._0;
+   var formatEncoderField = function (field) {
       return A2($Basics._op["++"],
       "(\"",
       A2($Basics._op["++"],
-      _p20,
+      field.name,
       A2($Basics._op["++"],
       "\",  ",
       A2($Basics._op["++"],
-      A2($String.join," <| ",A2($String.split," ",guessEncoder($String.toLower(_p19._1)))),
-      A2($Basics._op["++"]," record.",A2($Basics._op["++"],_p20,")"))))));
+      A2($String.join," <| ",A2($String.split," ",guessEncoder($Types.knownTypesToString(field.typeName)))),
+      A2($Basics._op["++"]," record.",A2($Basics._op["++"],field.name,")"))))));
    };
    var createEncoder = function (string) {
-      var withoutNewlines = A2($Debug.log,"n",A4($Regex.replace,$Regex.All,$Regex.regex("\\n"),function (_p21) {    return "";},string));
-      var typeName = A2($Maybe.withDefault,"",A2($Debug.log,"alias",getTypeAliasName(withoutNewlines)));
+      var withoutNewlines = A4($Regex.replace,$Regex.All,$Regex.regex("\\n"),function (_p7) {    return "";},string);
+      var typeName = capitalize(A2($Maybe.withDefault,"",getTypeAliasName(withoutNewlines)));
       var fields = A2($String.join,"\n        , ",A2($List.map,formatEncoderField,A2($List.map,getFieldNameAndType,getFields(withoutNewlines))));
       return A2($String.join,
       "",
-      _U.list(["encode",typeName," : ",typeName," -> Json.Encode.Value","\nencode",typeName," record =\n     object\n        [ ",fields,"\n        ]"]));
+      _U.list(["encode"
+              ,typeName
+              ," : "
+              ,typeName
+              ," -> Json.Encode.Value"
+              ,"\nencode"
+              ,typeName
+              ," record =\n    Json.Encode.object\n        [ "
+              ,fields
+              ,"\n        ]"]));
    };
    return _elm.TypeAlias.values = {_op: _op
                                   ,knownDecoders: knownDecoders
+                                  ,TypeAlias: TypeAlias
+                                  ,Field: Field
                                   ,capitalize: capitalize
+                                  ,fullyQualifiedName: fullyQualifiedName
                                   ,fieldFormat: fieldFormat
                                   ,aliasFormat: aliasFormat
+                                  ,generateFields: generateFields
+                                  ,gatherAliases: gatherAliases
+                                  ,resolveConflicts: resolveConflicts
                                   ,createTypeAlias: createTypeAlias
+                                  ,createTypeAliases: createTypeAliases
+                                  ,isAlreadyAName: isAlreadyAName
                                   ,getTypeAliasName: getTypeAliasName
                                   ,getFields: getFields
                                   ,getFieldNameAndType: getFieldNameAndType
@@ -13698,7 +13751,7 @@ Elm.Home.make = function (_elm) {
    $Types = Elm.Types.make(_elm),
    $Util = Elm.Util.make(_elm);
    var _op = {};
-   var model = {input: "",name: ""};
+   var model = {input: "",name: "",errors: _U.list([])};
    var update = F2(function (action,model) {
       var _p0 = action;
       switch (_p0.ctor)
@@ -13706,10 +13759,13 @@ Elm.Home.make = function (_elm) {
          case "UpdateInput": return {ctor: "_Tuple2",_0: _U.update(model,{input: _p0._0}),_1: $Effects.none};
          default: return {ctor: "_Tuple2",_0: _U.update(model,{name: _p0._0}),_1: $Effects.none};}
    });
-   var Model = F2(function (a,b) {    return {input: a,name: b};});
+   var Model = F3(function (a,b,c) {    return {input: a,name: b,errors: c};});
    var Noop = {ctor: "Noop"};
    var UpdateName = function (a) {    return {ctor: "UpdateName",_0: a};};
    var UpdateInput = function (a) {    return {ctor: "UpdateInput",_0: a};};
+   var viewErrors = F2(function (address,errors) {
+      return A2($Html.ul,_U.list([]),A2($List.map,function (error) {    return A2($Html.li,_U.list([]),_U.list([$Html.text(error)]));},errors));
+   });
    var viewJson = function (json) {    return A2($Html.div,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],"The entered json was: ",json))]));};
    var viewAlias = function (alias) {    return A2($Html.div,_U.list([]),_U.list([$Html.text(alias)]));};
    var Alias = {ctor: "Alias"};
@@ -13721,7 +13777,6 @@ Elm.Home.make = function (_elm) {
    var Input = {ctor: "Input"};
    var Content = {ctor: "Content"};
    var textStuff = "\n{\n    \"name\": \"Dave\",\n    \"age\" : 15,\n    \"location\" : {\n        \"name\" : \"Sweden\",\n        \"days\" : 25.5\n    }\n}\n    ";
-   var aliases = A2($TypeAlias.createTypeAlias,$Types.toValue(textStuff),"User");
    var cssNamespace = "homepage";
    var _p1 = $Html$CssHelpers.namespace(cssNamespace);
    var $class = _p1.$class;
@@ -13752,11 +13807,14 @@ Elm.Home.make = function (_elm) {
       _U.list([A2($Html.label,_U.list([]),_U.list([$Html.text("Enter a toplevel alias name here: ")]))
               ,A2($Html.input,
               _U.list([A3($Html$Events.on,"input",$Html$Events.targetValue,function (_p3) {    return A2($Signal.message,address,UpdateName(_p3));})
-                      ,$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "top",_1: "0px"}]))]),
+                      ,$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "top",_1: "0px"}]))
+                      ,$Html$Attributes.value(name)]),
               _U.list([$Html.text(name)]))]));
    });
    var view = F2(function (address,model) {
-      var aliases = _U.eq($String.trim(model.input),"") ? _U.list([]) : A2($TypeAlias.createTypeAlias,$Types.toValue(model.input),model.name);
+      var aliases = _U.eq($String.trim(model.input),"") ? _U.list([]) : A2($List.map,
+      $TypeAlias.aliasFormat,
+      A3($TypeAlias.createTypeAliases,$Types.toValue(model.input),model.name,""));
       return A2($Html.div,
       _U.list([$class(_U.list([Content]))]),
       _U.list([A2(viewNameSelect,address,model.name),A2(viewInput,address,model.input),viewAll(aliases),$Util.stylesheetLink("./homepage.css")]));
@@ -13780,12 +13838,12 @@ Elm.Home.make = function (_elm) {
                              ,Output: Output
                              ,Alias: Alias
                              ,css: css
-                             ,aliases: aliases
                              ,viewAlias: viewAlias
                              ,viewJson: viewJson
                              ,viewOutput: viewOutput
                              ,viewAll: viewAll
                              ,viewInput: viewInput
+                             ,viewErrors: viewErrors
                              ,aliasCss: aliasCss
                              ,viewNameSelect: viewNameSelect
                              ,view: view
