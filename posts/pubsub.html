@@ -1,0 +1,379 @@
+<div><header><link rel="stylesheet" type="text/css" href="/style.css"><link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Gentium+Book+Basic"><script src="/Native/Highlight.js"></script><link rel="stylesheet" type="text/css" href="/default.css"><a><img src="/logo.png" class="logo"></a><a><h1>Tech</h1></a></header><article class="content wrap"><h2 class="post-title">Pub/Sub in 30 Lines of Elixir</h2><div class="post text"><div><p>All programming languages give you some primitives to use as starting points in your own creations.  For example, a language might provide arrays, hashes, and objects that you turn into a system representing students, teachers, and the work that passes between them.</p>
+<p>Some languages go a little further in what they provide.  For example, several languages have primitives that represent code in that language.  This opens the doors to using metaprogramming to remake the language into exactly what you need it to be to best solve your problems.  The various Lisps are perfect examples of this.</p>
+<p>Now <a href="http://elixir-lang.org/">Elixir</a> includes <em>process</em> primitives.  These processes are actually inherited from <a href="http://www.erlang.org/">Erlang</a>, which Elixir is built on top of.</p>
+<p>The name is a little confusing because you can spin up a &quot;process&quot; from most any language.  That&#39;s not the same thing.  In most languages, the word process refers to a thing created and managed by your operating system.  These are completely separate programs.  Operating systems are heavily optimized for creating these programs but they are still pretty heavyweight items.  Elixir processes are much smaller.</p>
+<p>You might be wondering if they are more like threads?  Not really.  Threads are still too big and they deal in terms of shared memory.  Shared memory usually involves some kind of locking and this quickly complicates their usage.  Elixir processes share nothing.</p>
+<p>Finally, communication is baked in.  Elixir processes can send messages to each other.</p>
+<p>In many ways, Elixir processes are closer to objects in Object Oriented languages.  They encapsulate data and it&#39;s the interactions among the processes that make up what a system does.  The differences are that processes can act independently of each other, even in parallel, and you are forced to <a href="http://baddotrobot.com/blog/2012/10/06/sending-messages-vs-method-invocation/">send messages</a> to them.</p>
+<p>Let&#39;s look at an example.  The following Elixir code launches two processes and has the second one send a message to the first.  We&#39;ll examine it in chunks:</p>
+<pre><code>IO.puts <span class="hljs-string">"<span class="hljs-subst">#{inspect <span class="hljs-keyword">self</span>}</span> is a process launching other processes..."</span>
+
+<span class="hljs-comment"># ...</span>
+</code></pre><p>This first bit just prints a statement indicating what the <em>main</em> process is about to do.  By main process, I just mean the one that started running your code, as opposed to the other processes we are about to launch.  <code>inspect self</code> just shows a unique identifier for each process, so we can tell them apart in the output.</p>
+<pre><code class="lang-elixir">    <span class="hljs-comment"># ...</span>
+
+    receiver = spawn(<span class="hljs-keyword">fn</span> -&gt;
+      IO.puts <span class="hljs-string">"<span class="hljs-subst">#{inspect <span class="hljs-keyword">self</span>}</span> is a process listening for messages..."</span>
+      receive <span class="hljs-keyword">do</span>
+        %{<span class="hljs-symbol">from:</span> from, <span class="hljs-symbol">content:</span> content} -&gt;
+          IO.puts <span class="hljs-string">"<span class="hljs-subst">#{inspect <span class="hljs-keyword">self</span>}</span> received this message from <span class="hljs-subst">#{inspect from}</span>:  "</span>
+                  content
+      <span class="hljs-keyword">end</span>
+    <span class="hljs-keyword">end</span>)
+
+    <span class="hljs-comment"># ...</span>
+</code></pre>
+<p>This code creates our first subprocess.  That new process also prints output regarding its job and before doing what it said it would:  listening for incoming messages.  It will print another line when a message arrives.</p>
+<pre><code><span class="hljs-comment"># ...</span>
+
+spawn(<span class="hljs-keyword">fn</span> -&gt;
+  IO.puts <span class="hljs-string">"<span class="hljs-subst">#{inspect <span class="hljs-keyword">self</span>}</span> is a process sending messages..."</span>
+  send(receiver, %{<span class="hljs-symbol">from:</span> <span class="hljs-keyword">self</span>, <span class="hljs-symbol">content:</span> <span class="hljs-string">"Hello other process!"</span>})
+<span class="hljs-keyword">end</span>)
+</code></pre><p>This creates our second subprocess.  Like the others, it prints what it will do, then does it.  In this case, the job is to deliver a message to the first subprocess.</p>
+<p>If we bundle all of that code up in a file called <code>processes.exs</code>, it would look like this:</p>
+<pre><code>IO.puts <span class="hljs-string">"<span class="hljs-subst">#{inspect <span class="hljs-keyword">self</span>}</span> is a process launching other processes..."</span>
+
+receiver = spawn(<span class="hljs-keyword">fn</span> -&gt;
+  IO.puts <span class="hljs-string">"<span class="hljs-subst">#{inspect <span class="hljs-keyword">self</span>}</span> is a process listening for messages..."</span>
+  receive <span class="hljs-keyword">do</span>
+    %{<span class="hljs-symbol">from:</span> from, <span class="hljs-symbol">content:</span> content} -&gt;
+      IO.puts <span class="hljs-string">"<span class="hljs-subst">#{inspect <span class="hljs-keyword">self</span>}</span> received this message from <span class="hljs-subst">#{inspect from}</span>:  "</span>
+              content
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span>)
+
+spawn(<span class="hljs-keyword">fn</span> -&gt;
+  IO.puts <span class="hljs-string">"<span class="hljs-subst">#{inspect <span class="hljs-keyword">self</span>}</span> is a process sending messages..."</span>
+  send(receiver, %{<span class="hljs-symbol">from:</span> <span class="hljs-keyword">self</span>, <span class="hljs-symbol">content:</span> <span class="hljs-string">"Hello other process!"</span>})
+<span class="hljs-keyword">end</span>)
+</code></pre><p>There are three key bits in the code:</p>
+<ul>
+<li>The <code>spawn()</code> function launches a new process.  In this case, I have provided anonymous functions for the code I want to run in each one.  A <code>PID</code> (Process ID) is returned, which is useful with…</li>
+<li>The <code>send()</code> function allows one process to send a message to another process.  The message can be any data.  In this case, I&#39;ve used a <code>Map</code>, which is Elixir&#39;s equivalent to Ruby&#39;s <code>Hash</code>.</li>
+<li>Code inside of <code>receive do … end</code> allows a process to listen for incoming messages.  Inside, various clauses <a href="http://elixir-lang.org/getting-started/pattern-matching.html">pattern match</a> the incoming messages and provide code for handling them.  A listening process will block here until a message arrives that matches one of the patterns or an optional timeout is hit (not shown in this post).</li>
+</ul>
+<p>You can see how these pieces interact if you run the code with Elixir 1.2.3:</p>
+<pre><code><span class="hljs-variable">$ </span>elixir processes.exs
+<span class="hljs-comment">#PID is a process launching other processes...</span>
+<span class="hljs-comment">#PID is a process listening for messages...</span>
+<span class="hljs-comment">#PID is a process sending messages...</span>
+<span class="hljs-comment">#PID received this message from #PID:  Hello other process!</span>
+</code></pre><p>This may not look like much yet, but you can build fully distributed systems using just these tools.  Let&#39;s prove it by creating a pub/sub messaging system in 30 lines of code.  I&#39;ll keep my processes on the same machine for this example, but the code we build up could be used across the network without changes.  Elixir makes that trivial.</p>
+<h2 id="a-pub-sub-server">A Pub/Sub Server</h2>
+<p>Elixir already gives us a way to send messages to individual processes as needed.  Let&#39;s say we need a <a href="http://www.enterpriseintegrationpatterns.com/patterns/messaging/PublishSubscribeChannel.html">Publish-Subscribe Channel</a> though.  In that model, interested processes subscribe to the channel and then, when a message comes in, it is forwarded to all current subscribers.</p>
+<p>To give an example of how this could be useful, imagine that we have events arriving that represent student&#39;s answers to quiz questions.  The main action is to figure out if the student has answered correctly and respond to them.  Several subsystems may also be interested in the result though.  We may need to update the students mastery scores for the concept that the question covers; we may need to update a teacher&#39;s grade book based on how the student did; we might want to record some general metrics useful in determining the overall difficulty of the question.  One way to avoid tightly coupling all of these systems to the evaluation response code, is to allow the latter to <em>publish</em> results that subsystems can <em>subscribe</em> to receive.  If we someday wish to track a new metric that we haven&#39;t paid attention to in the past, we can just add another subscriber for the new subsystem.</p>
+<p>We need three things to pull this off:</p>
+<ol>
+<li>We need to <code>spawn()</code> a <code>PubSubServer</code> process.  Its job will be to track who is subscribed and handle incoming messages.</li>
+<li>We need a way to send messages to that server process.</li>
+<li>We need a way to subscribe to messages coming out of the server process.</li>
+</ol>
+<p>We&#39;ll attack the problem in just that manner.  Let&#39;s build up some code in a file called <code>pub_sub.exs</code>.  First, we <code>spawn()</code> a process:</p>
+<pre><code><span class="hljs-class"><span class="hljs-keyword">defmodule</span> <span class="hljs-title">PubSubServer</span></span> <span class="hljs-keyword">do</span>
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">start</span></span> <span class="hljs-keyword">do</span>
+    spawn(__MODULE_<span class="hljs-number">_</span>, <span class="hljs-symbol">:run</span>, [[ ]])
+  <span class="hljs-keyword">end</span>
+
+  <span class="hljs-comment"># ...</span>
+<span class="hljs-keyword">end</span>
+</code></pre><p>You&#39;ve seen <code>spawn()</code> before, but there are two differences in this code.  First, I am tucking these functions away in their own module to namespace the API provided.  The other difference is that I have not passed <code>spawn()</code> an anonymous function this time, but instead referenced a function using three identifiers.  The first is a module name and I used <code>__MODULE__</code> to fetch the name of the current module.  The second is the name of the function to call in that module:  <code>run()</code>, which we&#39;ll get to in a bit.  Finally, you provide a list of arguments to pass to that function, which in this case is a single argument that is an empty list.</p>
+<p>My <code>start()</code> function returns what <code>spawn()</code> does:  the <code>PID</code> of the new process.  We can use that to communicate with the process.  Given that, what would publishing a message look like?</p>
+<pre><code><span class="hljs-class"><span class="hljs-keyword">defmodule</span> <span class="hljs-title">PubSubServer</span></span> <span class="hljs-keyword">do</span>
+  <span class="hljs-comment"># ...</span>
+
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">publish</span></span>(server, message) <span class="hljs-keyword">do</span>
+    send(server, {<span class="hljs-symbol">:publish</span>, message})
+  <span class="hljs-keyword">end</span>
+
+  <span class="hljs-comment"># ...</span>
+<span class="hljs-keyword">end</span>
+</code></pre><p>This is a trivial wrapper over <code>send()</code>.  Why do that?  The caller has the <code>PID</code> and it could just call <code>send()</code> themselves.  That&#39;s true, but by wrapping it we remove the need for the caller to know our internal message format.  We may choose to change that someday and they won&#39;t even need to know, as long as they keep calling <code>publish()</code>.  For now we&#39;ve chosen to make messages simple tuples where the first element is an atom describing the message type.  That can be used in pattern matching on the receiving end.</p>
+<p>Subscribing is similar, but we&#39;ll do a little more for the user:</p>
+<pre><code><span class="hljs-class"><span class="hljs-keyword">defmodule</span> <span class="hljs-title">PubSubServer</span></span> <span class="hljs-keyword">do</span>
+  <span class="hljs-comment"># ...</span>
+
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">subscribe</span></span>(server, handler) <span class="hljs-keyword">do</span>
+    send(server, {<span class="hljs-symbol">:subscribe</span>, <span class="hljs-keyword">self</span>})
+    listen(handler)
+  <span class="hljs-keyword">end</span>
+
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">listen</span></span>(handler) <span class="hljs-keyword">do</span>
+    receive <span class="hljs-keyword">do</span>
+      message -&gt;
+        handler.(message)
+        listen(handler)
+    <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">end</span>
+
+  <span class="hljs-comment"># ...</span>
+<span class="hljs-keyword">end</span>
+</code></pre><p>Again, we <code>send()</code> the message on the caller&#39;s behalf.  This time we say that <code>self</code> is subscribing, which is just how you get the <code>PID</code> of the current process in Elixir.  After the message is sent we also fall into a <code>receive</code> loop to wait for the incoming messages.  The caller provides an anonymous function that we&#39;ll call with each message we receive to invoke whatever code they need.</p>
+<p>The <code>listen()</code> function might look a little weird if you haven&#39;t seen a &quot;loop&quot; in Elixir before.  The language doesn&#39;t really have loops, so functions just <a href="http://elixir-lang.org/getting-started/recursion.html">recurse to perform some operation repeatedly</a>.  Because Elixir has <a href="https://en.wikipedia.org/wiki/Tail_call">tail call optimization</a>, this process doesn&#39;t add new stack frames and is very efficient.</p>
+<p>The outside interface for our code is defined.  We just need that <code>run()</code> function with the internal logic we promised in our <code>spawn()</code> call.</p>
+<pre><code><span class="hljs-class"><span class="hljs-keyword">defmodule</span> <span class="hljs-title">PubSubServer</span></span> <span class="hljs-keyword">do</span>
+  <span class="hljs-comment"># ...</span>
+
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>(subscribers) <span class="hljs-keyword">do</span>
+    receive <span class="hljs-keyword">do</span>
+      {<span class="hljs-symbol">:publish</span>, message} -&gt;
+        Enum.each(subscribers, <span class="hljs-keyword">fn</span> pid -&gt; send(pid, message) <span class="hljs-keyword">end</span>)
+        run(subscribers)
+      {<span class="hljs-symbol">:subscribe</span>, subscriber} -&gt;
+        run([subscriber | subscribers])
+    <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span>
+</code></pre><p>This code handles the two types of messages that we made up in the previous functions.  When <code>:publish</code> comes in, we forward the message to our list of <code>subscribers</code> passed into <code>run()</code>.  The <code>:subscribe</code> message is how that list grows and it is another slightly tricky Elixir-ism.</p>
+<p>I mentioned before that loops are just recursive function calls and we see that again in <code>run()</code>.  The interesting new bit is how processes &quot;remember&quot; things.</p>
+<p>Elixir&#39;s data structures are immutable, so any &quot;change&quot; actually makes a new structure that reflects the differences.  That might leave you wondering how we keep track of which of these structures is current?</p>
+<p>The answer is that we pass them as arguments to the recursive calls.  This means that each pass through the loop can learn from what happened in previous passes.  If you recall back to the <code>start()</code> function, I passed an empty list to the initial call of <code>run()</code>.  Each time a <code>:subscribe</code> message comes in, we push the new listener onto the front of the current list as we hand it down to the next call of <code>run()</code>.  When a <code>:publish</code> message is received, <code>subscribers</code> will have accumulated the listeners from all previous times through the loop.</p>
+<p>That&#39;s it.  We&#39;ve built a pub/sub system.  All we have to do is prove it.</p>
+<h2 id="when-everything-happens-at-once">When Everything Happens At Once</h2>
+<p>My first naive thought was to show some example code like this:</p>
+<pre><code>server = PubSubServer.start
+listener_count = <span class="hljs-number">10</span>
+
+Stream.repeatedly(<span class="hljs-keyword">fn</span> -&gt;
+  spawn(<span class="hljs-keyword">fn</span> -&gt;
+    PubSubServer.subscribe(server, <span class="hljs-keyword">fn</span> message -&gt;
+      IO.puts <span class="hljs-string">"<span class="hljs-subst">#{inspect <span class="hljs-keyword">self</span>}</span> received:  <span class="hljs-subst">#{message}</span>"</span>
+    <span class="hljs-keyword">end</span>)
+  <span class="hljs-keyword">end</span>)
+<span class="hljs-keyword">end</span>) |&gt; Enum.take(listener_count)
+
+PubSubServer.publish(server, <span class="hljs-string">"Hello everyone!"</span>)
+</code></pre><p>This code fires up our <code>PubSubServer</code>, creates a bunch of subscribers, and publishes a message through the system.  The code in the middle may look a bit odd because Elixir doesn&#39;t have Ruby&#39;s <code>10.times do … end</code> iterator.  I recreated it by building an infinite <code>Stream</code> that just calls an anonymous function <code>repeatedly()</code> and then <code>take()</code>ing ten values from it.</p>
+<p>But does this code work?  Yes and no, but it&#39;s going to look more like no:</p>
+<pre><code><span class="hljs-variable">$ </span>elixir pub_sub.exs
+$
+</code></pre><p>The surprised look on my face right now reminds me that I forget to mention one very important detail when I started this discussion:  Elixir processes are fully parallel.  When you call <code>spawn()</code> it sets up the new process, but control returns to the caller as soon as it has a <code>PID</code> to give you.  The calling code doesn&#39;t actually wait for anything to happen in that child process before it goes back to executing instructions in the parent process.</p>
+<p>Given that, I introduced two separate timing bugs in the example code above!  Can you puzzle them out?</p>
+<p>The first issue reveals itself if we add some print statements to check the timing:</p>
+<pre><code><span class="hljs-class"><span class="hljs-keyword">defmodule</span> <span class="hljs-title">PubSubServer</span></span> <span class="hljs-keyword">do</span>
+  <span class="hljs-comment"># ...</span>
+
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>(subscribers) <span class="hljs-keyword">do</span>
+    receive <span class="hljs-keyword">do</span>
+      {<span class="hljs-symbol">:publish</span>, message} -&gt;
+        IO.puts <span class="hljs-string">"Publishing..."</span>
+        Enum.each(subscribers, <span class="hljs-keyword">fn</span> pid -&gt; send(pid, message) <span class="hljs-keyword">end</span>)
+        run(subscribers)
+      {<span class="hljs-symbol">:subscribe</span>, subscriber} -&gt;
+        IO.puts <span class="hljs-string">"Subscribing..."</span>
+        run([subscriber | subscribers])
+    <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span>
+</code></pre><p>Here&#39;s what they tell us:</p>
+<pre><code><span class="hljs-variable">$ </span>elixir pub_sub.exs
+Publishing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+</code></pre><p>Kind of backwards from what we were aiming for, eh?  As a refresher, here&#39;s the problematic code:</p>
+<pre><code><span class="hljs-comment"># ...</span>
+
+Stream.repeatedly(<span class="hljs-keyword">fn</span> -&gt;
+  spawn(<span class="hljs-keyword">fn</span> -&gt;
+    PubSubServer.subscribe(server, <span class="hljs-keyword">fn</span> message -&gt;
+      IO.puts <span class="hljs-string">"<span class="hljs-subst">#{inspect <span class="hljs-keyword">self</span>}</span> received:  <span class="hljs-subst">#{message}</span>"</span>
+    <span class="hljs-keyword">end</span>)
+  <span class="hljs-keyword">end</span>)
+<span class="hljs-keyword">end</span>) |&gt; Enum.take(listener_count)
+
+PubSubServer.publish(server, <span class="hljs-string">"Hello everyone!"</span>)
+</code></pre><p>The calls to <code>spawn()</code> are triggered first, but the main process keeps going as those processes start running.  It finishes the call to <code>publish()</code> before the processes can get subscribed and that message is passed on to zero processes.  That&#39;s our first problem.</p>
+<p>A clumsy fix is just to slow the main process down a touch before it <code>publish()</code>es:</p>
+<pre><code><span class="hljs-comment"># ...</span>
+
+<span class="hljs-comment"># give the subscribers time to get rolling</span>
+<span class="hljs-symbol">:timer</span>.sleep(<span class="hljs-number">1_000</span>)
+
+PubSubServer.publish(server, <span class="hljs-string">"Hello everyone!"</span>)
+</code></pre><p>OK, the forced sleep is gross, but does it work?  Again, it&#39;s an unsatisfying yes and no:</p>
+<pre><code><span class="hljs-variable">$ </span>elixir pub_sub.exs
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Publishing...
+</code></pre><p>It&#39;s obvious that fixed the ordering problem, but we still don&#39;t see the output from our forwarded messages.  This is our second problem.  It&#39;s really just the first problem again, but the interaction is less obvious to me.</p>
+<p>After <code>publish()</code> is called the message starts speeding through the <code>PubSubServer</code> and the subscriber processes.  Again though, the main process carries on.  Well, the opposite actually.  Since the call to <code>publish()</code> is the last line the main process executes, it exits right after and shuts down the whole virtual machine before the subscriber processes complete their work.</p>
+<p>One more sleep will show us that <code>PubSubServer</code> has worked fine all along.  Here&#39;s the added line:</p>
+<pre><code><span class="hljs-comment"># ...</span>
+
+PubSubServer.publish(server, <span class="hljs-string">"Hello everyone!"</span>)
+
+<span class="hljs-comment"># give the messages time to be written</span>
+<span class="hljs-symbol">:timer</span>.sleep(<span class="hljs-number">1_000</span>)
+</code></pre><p>And here&#39;s the output we&#39;ve been waiting for:</p>
+<pre><code><span class="hljs-variable">$ </span>elixir pub_sub.exs
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Subscribing...
+Publishing...
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+</code></pre><p>I know what you&#39;re thinking:  can you do it without the calls to <code>sleep()</code>?  Why, yes I can.  Stick around.</p>
+<p>There&#39;s another way around our use of the second <code>sleep()</code>.  If I remove the extra calls to <code>puts()</code> and that final <code>sleep()</code>, we can still make it work:</p>
+<pre><code><span class="hljs-variable">$ </span>elixir --no-halt pub_sub.exs
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+^C
+<span class="hljs-symbol">BREAK:</span> (a)bort (c)ontinue (p)roc info (i)nfo (l)oaded
+       (v)ersion (k)ill (D)b-tables (d)istribution
+q
+</code></pre><p>The difference here is the usage of Elixir&#39;s <code>--no-halt</code> flag.  Sometimes people write scripts that spin up various processes to do stuff and they want to wait on that work even though the main process is finished.  That&#39;s why this flag exists.  It tells Elixir to skip the step of shutting everything down when it falls off the end of the main script.  The virtual machine just keeps running.  You can see that I manually stopped it here by typing <code>control-c</code>, <code>q</code>, and <code>return</code>.</p>
+<p>That&#39;s still kind of cheating though, right?  Let&#39;s roll our sleeves up and really solve these timing issues.</p>
+<h2 id="knowing-what-a-process-is-thinking">Knowing What a Process Is Thinking</h2>
+<p>In order to fix the example code, we need two pieces of knowledge that we don&#39;t currently have.  First, we need to know when the <code>PubSubServer</code> has ten subscribers.  We want to publish the message after that point, so we need to wait on it to happen.</p>
+<p>The second piece of knowledge we need is similar.  We need to know when the subscribers have finished acknowledging that they received the messages from <code>PubSubServer</code>.  That&#39;s the point when it&#39;s safe for us to shutdown.</p>
+<p>In other words, we have two cases of needing to know what a process is thinking.  Which leads us to a great rule of thumb:  <strong>if you need to know what an Elixir process is thinking, it needs to tell you</strong>.  We can use this telling strategy to fix up our code.</p>
+<p>To gain the first piece of knowledge, we do need to thread a callback through two functions of <code>PubSubServer</code>.  Here are the changes:</p>
+<pre><code><span class="hljs-class"><span class="hljs-keyword">defmodule</span> <span class="hljs-title">PubSubServer</span></span> <span class="hljs-keyword">do</span>
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">start</span></span>(subscriber_callback \ <span class="hljs-keyword">nil</span>) <span class="hljs-keyword">do</span>
+    spawn(__MODULE_<span class="hljs-number">_</span>, <span class="hljs-symbol">:run</span>, [[ ], subscriber_callback])
+  <span class="hljs-keyword">end</span>
+
+  <span class="hljs-comment"># ...</span>
+
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>(subscribers, subscriber_callback) <span class="hljs-keyword">do</span>
+    receive <span class="hljs-keyword">do</span>
+      {<span class="hljs-symbol">:publish</span>, message} -&gt;
+        Enum.each(subscribers, <span class="hljs-keyword">fn</span> pid -&gt; send(pid, message) <span class="hljs-keyword">end</span>)
+        run(subscribers, subscriber_callback)
+      {<span class="hljs-symbol">:subscribe</span>, subscriber} -&gt;
+        if subscriber_callback, <span class="hljs-symbol">do:</span> subscriber_callback.(subscriber)
+        run([subscriber | subscribers], subscriber_callback)
+    <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span>
+</code></pre><p>The difference here is that we now accept an optional <code>subscriber_callback</code> when the server is <code>start()</code>ed.  We pass that callback down to <code>run()</code> and add it to what we are keeping track of while recursing.  Then, if a callback is provided, we call the function whenever a new process subscribes.</p>
+<p>Now we can half-fix the example code:</p>
+<pre><code><span class="hljs-comment"># add a callback that sends us a message when someone subscribes</span>
+main = <span class="hljs-keyword">self</span>
+server = PubSubServer.start(<span class="hljs-keyword">fn</span> subscriber -&gt;
+  send(main, {<span class="hljs-symbol">:subscriber</span>, subscriber})
+<span class="hljs-keyword">end</span>)
+listener_count = <span class="hljs-number">10</span>
+
+Stream.repeatedly(<span class="hljs-keyword">fn</span> -&gt;
+  spawn(<span class="hljs-keyword">fn</span> -&gt;
+    PubSubServer.subscribe(server, <span class="hljs-keyword">fn</span> message -&gt;
+      IO.puts <span class="hljs-string">"<span class="hljs-subst">#{inspect <span class="hljs-keyword">self</span>}</span> received:  <span class="hljs-subst">#{message}</span>"</span>
+    <span class="hljs-keyword">end</span>)
+  <span class="hljs-keyword">end</span>)
+<span class="hljs-keyword">end</span>) |&gt; Enum.take(listener_count)
+
+<span class="hljs-comment"># replace `sleep()` with listening for `listener_count` subscribers</span>
+Stream.repeatedly(<span class="hljs-keyword">fn</span> -&gt;
+  receive <span class="hljs-keyword">do</span>
+    {<span class="hljs-symbol">:subscriber</span>, <span class="hljs-number">_</span>} -&gt; <span class="hljs-keyword">true</span>
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span>) |&gt; Enum.take(listener_count)
+
+PubSubServer.publish(server, <span class="hljs-string">"Hello everyone!"</span>)
+</code></pre><p>The comments point out the two changes made:  we added a callback that notifies <code>main</code> when a process subscribes and we now listen for all of the subscribers to join before we <code>publish()</code> a message.  That removes the need to sleep, though we still need the <code>--no-halt</code> flag:</p>
+<pre><code><span class="hljs-variable">$ </span>elixir --no-halt pub_sub.exs
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+^C
+<span class="hljs-symbol">BREAK:</span> (a)bort (c)ontinue (p)roc info (i)nfo (l)oaded
+       (v)ersion (k)ill (D)b-tables (d)istribution
+q
+</code></pre><p>Doing pretty much the same fix one more time finally banishes the timing issues from our code:</p>
+<pre><code>main = <span class="hljs-keyword">self</span>
+server = PubSubServer.start(<span class="hljs-keyword">fn</span> subscriber -&gt;
+  send(main, {<span class="hljs-symbol">:subscriber</span>, subscriber})
+<span class="hljs-keyword">end</span>)
+listener_count = <span class="hljs-number">10</span>
+
+Stream.repeatedly(<span class="hljs-keyword">fn</span> -&gt;
+  spawn(<span class="hljs-keyword">fn</span> -&gt;
+    PubSubServer.subscribe(server, <span class="hljs-keyword">fn</span> message -&gt;
+      IO.puts <span class="hljs-string">"<span class="hljs-subst">#{inspect <span class="hljs-keyword">self</span>}</span> received:  <span class="hljs-subst">#{message}</span>"</span>
+      send(main, {<span class="hljs-symbol">:written</span>, message})  <span class="hljs-comment"># notify `main` of the write</span>
+    <span class="hljs-keyword">end</span>)
+  <span class="hljs-keyword">end</span>)
+<span class="hljs-keyword">end</span>) |&gt; Enum.take(listener_count)
+
+Stream.repeatedly(<span class="hljs-keyword">fn</span> -&gt;
+  receive <span class="hljs-keyword">do</span>
+    {<span class="hljs-symbol">:subscriber</span>, <span class="hljs-number">_</span>} -&gt; <span class="hljs-keyword">true</span>
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span>) |&gt; Enum.take(listener_count)
+
+PubSubServer.publish(server, <span class="hljs-string">"Hello everyone!"</span>)
+
+<span class="hljs-comment"># wait for `listener_count` writes before we quit</span>
+Stream.repeatedly(<span class="hljs-keyword">fn</span> -&gt;
+  receive <span class="hljs-keyword">do</span>
+    {<span class="hljs-symbol">:written</span>, <span class="hljs-number">_</span>} -&gt; <span class="hljs-keyword">true</span>
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span>) |&gt; Enum.take(listener_count)
+</code></pre><p>Again, see the comments.  They point out the new notification and the final pause for incoming messages.</p>
+<p>Our example code finally functions as advertised:</p>
+<pre><code><span class="hljs-variable">$ </span>elixir pub_sub.exs
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+<span class="hljs-comment">#PID received:  Hello everyone!</span>
+</code></pre><h2 id="in-your-own-code">In Your Own Code</h2>
+<p>You can read through <a href="https://gist.github.com/JEG2/5517c64ae051092e40e7">the final code from this post</a> if you&#39;re curious, but know that it&#39;s just a learning tool.  If you really need an Elixir pub/sub system, you should probably borrow <a href="https://github.com/phoenixframework/phoenix_pubsub">the one the Phoenix web framework uses</a> or at least rework my code in terms of <a href="http://elixir-lang.org/docs/stable/elixir/GenEvent.html">GenEvent</a>, an Elixir tool would allow you to <a href="http://elixir-lang.org/getting-started/mix-otp/supervisor-and-application.html">use supervisors to restart your process in case of failure</a>.</p>
+<p>Having these powerful primitives to build on gives you some choices when writing Elixir applications.  In many other languages, the norm would be to add external dependencies to handle pub/sub, queuing, scheduled job execution, and more.  You can still take that path in Elixir too.  It works as it always has.  With Elixir though, you also have the choice of easily meeting your specific need using the tools included with the language.  It&#39;s always nice to have options.</p>
+<p><img src="https://cloud.githubusercontent.com/assets/1094080/12563301/9d84e346-c377-11e5-8546-433af08218c0.png" alt="">
+<strong>James Edward Gray II</strong>
+<a href="https://twitter.com/JEG2">@JEG2</a>
+Engineer at <a href="http://noredink.com">NoRedInk</a></p>
+</div></div></article></div>
