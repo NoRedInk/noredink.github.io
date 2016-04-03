@@ -14290,7 +14290,8 @@ Elm.TypeAlias.make = function (_elm) {
    $String = Elm.String.make(_elm),
    $Types = Elm.Types.make(_elm);
    var _op = {};
-   var imports = "\nimport Json.Encode\nimport Json.Decode exposing ((:=))\nimport Json.Decode.Extra exposing ((|:))\n    ";
+   var pipelineImports = $String.trim("\nimport Json.Encode\nimport Json.Decode\n-- elm-package install -- yes noredink/elm-decode-pipeline\nimport Json.Decode.Pipeline\n    ");
+   var originalImports = $String.trim("\nimport Json.Encode\nimport Json.Decode exposing ((:=))\n-- elm-package install --yes circuithub/elm-json-extra\nimport Json.Decode.Extra exposing ((|:))\n    ");
    var typeFromDecoder = function (input) {
       typeFromDecoder: while (true) {
          var _p0 = $String.lines(A2($Debug.log,"in",input));
@@ -14654,7 +14655,8 @@ Elm.TypeAlias.make = function (_elm) {
                                   ,guessTypeFromDecoder: guessTypeFromDecoder
                                   ,fieldsFromDecoder: fieldsFromDecoder
                                   ,typeAliasFromDecoder: typeAliasFromDecoder
-                                  ,imports: imports};
+                                  ,originalImports: originalImports
+                                  ,pipelineImports: pipelineImports};
 };Elm.UnionType = Elm.UnionType || {};
 Elm.UnionType.make = function (_elm) {
    "use strict";
@@ -14789,10 +14791,12 @@ Elm.Home.make = function (_elm) {
    $UnionType = Elm.UnionType.make(_elm),
    $Util = Elm.Util.make(_elm);
    var _op = {};
-   var Model = F4(function (a,b,c,d) {    return {input: a,name: b,errors: c,inputType: d};});
+   var Model = F5(function (a,b,c,d,e) {    return {input: a,name: b,errors: c,inputType: d,decoderType: e};});
+   var Pipeline = {ctor: "Pipeline"};
+   var Original = {ctor: "Original"};
    var DecoderString = {ctor: "DecoderString"};
    var JsonBlob = {ctor: "JsonBlob"};
-   var model = {input: "",name: "Something",errors: _U.list([]),inputType: JsonBlob};
+   var model = {input: "",name: "Something",errors: _U.list([]),inputType: JsonBlob,decoderType: Original};
    var UnionType = {ctor: "UnionType"};
    var TypeAliasType = {ctor: "TypeAliasType"};
    var update = F2(function (action,model) {
@@ -14805,9 +14809,11 @@ Elm.Home.make = function (_elm) {
                   {input: _p1
                   ,inputType: $TypeAlias.isUnionType(_p1) ? UnionType : $TypeAlias.isTypeAlias(_p1) ? TypeAliasType : $TypeAlias.isDecoder(_p1) ? DecoderString : JsonBlob})
                   ,_1: $Effects.none};
-         default: return {ctor: "_Tuple2",_0: _U.update(model,{name: _p0._0}),_1: $Effects.none};}
+         case "UpdateName": return {ctor: "_Tuple2",_0: _U.update(model,{name: _p0._0}),_1: $Effects.none};
+         default: return {ctor: "_Tuple2",_0: _U.update(model,{decoderType: _p0._0}),_1: $Effects.none};}
    });
    var Noop = {ctor: "Noop"};
+   var UpdateDecoder = function (a) {    return {ctor: "UpdateDecoder",_0: a};};
    var UpdateName = function (a) {    return {ctor: "UpdateName",_0: a};};
    var UpdateInput = function (a) {    return {ctor: "UpdateInput",_0: a};};
    var viewStatus = F2(function (incoming,aliases) {
@@ -14837,6 +14843,26 @@ Elm.Home.make = function (_elm) {
    var viewErrors = F2(function (address,errors) {
       return A2($Html.ul,_U.list([]),A2($List.map,function (error) {    return A2($Html.li,_U.list([]),_U.list([$Html.text(error)]));},errors));
    });
+   var radio = F4(function (address,selected,decoder,name) {
+      return A2($Html.span,
+      _U.list([]),
+      _U.list([A2($Html.input,
+              _U.list([$Html$Attributes.type$("radio")
+                      ,$Html$Attributes.checked(_U.eq(selected,decoder))
+                      ,A3($Html$Events.on,
+                      "change",
+                      $Html$Events.targetChecked,
+                      function (_p4) {
+                         return A2($Signal.message,address,UpdateDecoder(decoder));
+                      })]),
+              _U.list([]))
+              ,$Html.text(name)]));
+   });
+   var viewDecoderTypeInput = F2(function (address,decoder) {
+      return A2($Html.div,
+      _U.list([]),
+      _U.list([$Html.text("Decoder type: "),A4(radio,address,decoder,Original,"original"),A4(radio,address,decoder,Pipeline,"pipeline")]));
+   });
    var viewJson = function (json) {    return A2($Html.div,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],"The entered json was: ",json))]));};
    var viewAlias = function (alias) {    return A2($Html.div,_U.list([]),_U.list([$Html.text(alias)]));};
    var Alias = {ctor: "Alias"};
@@ -14848,23 +14874,39 @@ Elm.Home.make = function (_elm) {
    var Input = {ctor: "Input"};
    var Content = {ctor: "Content"};
    var cssNamespace = "homepage";
-   var _p4 = $Html$CssHelpers.withNamespace(cssNamespace);
-   var $class = _p4.$class;
-   var classList = _p4.classList;
-   var id = _p4.id;
+   var _p5 = $Html$CssHelpers.withNamespace(cssNamespace);
+   var $class = _p5.$class;
+   var classList = _p5.classList;
+   var id = _p5.id;
    var viewOutput = function (alias) {
       return A3($Html.node,
       "pre",
       _U.list([$Html$Attributes.value($TypeAlias.createDecoder(alias)),$class(_U.list([Output]))]),
       _U.list([$Html.text($TypeAlias.createDecoder(alias))]));
    };
-   var viewAllAliases = F2(function (incoming,aliases) {
+   var viewAllAliases = F3(function (incoming,decoder,aliases) {
+      var imports = function () {
+         var _p6 = decoder;
+         if (_p6.ctor === "Pipeline") {
+               return $TypeAlias.pipelineImports;
+            } else {
+               return $TypeAlias.originalImports;
+            }
+      }();
+      var decoderCreator = function () {
+         var _p7 = decoder;
+         if (_p7.ctor === "Pipeline") {
+               return $TypeAlias.createPipelineDecoder;
+            } else {
+               return $TypeAlias.createDecoder;
+            }
+      }();
       var formattedAliases = A2($List.map,$TypeAlias.aliasFormat,aliases);
       var output = A2($String.join,
       "\n\n",
-      $List.concat(_U.list([_U.list([$TypeAlias.imports])
+      $List.concat(_U.list([_U.list([imports])
                            ,formattedAliases
-                           ,A2($List.map,$TypeAlias.createDecoder,formattedAliases)
+                           ,A2($List.map,decoderCreator,formattedAliases)
                            ,A2($List.map,$TypeAlias.createEncoder,formattedAliases)])));
       return A2($Html.textarea,_U.list([$Html$Attributes.value(output),$class(_U.list([Output]))]),_U.list([]));
    });
@@ -14873,7 +14915,7 @@ Elm.Home.make = function (_elm) {
       var formattedAlias = $TypeAlias.aliasFormat(alias);
       var output = A2($String.join,
       "\n\n",
-      _U.list([$TypeAlias.imports,formattedAlias,$TypeAlias.createPipelineDecoder(formattedAlias),$TypeAlias.createEncoder(formattedAlias)]));
+      _U.list([$TypeAlias.pipelineImports,formattedAlias,$TypeAlias.createPipelineDecoder(formattedAlias),$TypeAlias.createEncoder(formattedAlias)]));
       return A2($Html.textarea,_U.list([$Html$Attributes.value(output),$class(_U.list([Output]))]),_U.list([]));
    };
    var viewTypeAliasStuff = function (incoming) {
@@ -14887,7 +14929,7 @@ Elm.Home.make = function (_elm) {
    };
    var viewInput = F2(function (address,alias) {
       return A2($Html.textarea,
-      _U.list([A3($Html$Events.on,"input",$Html$Events.targetValue,function (_p5) {    return A2($Signal.message,address,UpdateInput(_p5));})
+      _U.list([A3($Html$Events.on,"input",$Html$Events.targetValue,function (_p8) {    return A2($Signal.message,address,UpdateInput(_p8));})
               ,$class(_U.list([Input]))
               ,$Html$Attributes.placeholder("Put a valid JSON object in here!")]),
       _U.list([$Html.text(alias)]));
@@ -14897,7 +14939,7 @@ Elm.Home.make = function (_elm) {
       _U.list([$class(_U.list([Alias]))]),
       _U.list([A2($Html.label,_U.list([]),_U.list([$Html.text("Enter a toplevel alias name here: ")]))
               ,A2($Html.input,
-              _U.list([A3($Html$Events.on,"input",$Html$Events.targetValue,function (_p6) {    return A2($Signal.message,address,UpdateName(_p6));})
+              _U.list([A3($Html$Events.on,"input",$Html$Events.targetValue,function (_p9) {    return A2($Signal.message,address,UpdateName(_p9));})
                       ,$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "top",_1: "0px"}]))
                       ,$Html$Attributes.value(name)]),
               _U.list([$Html.text(name)]))]));
@@ -14905,9 +14947,9 @@ Elm.Home.make = function (_elm) {
    var view = F2(function (address,model) {
       var aliases = _U.eq($String.trim(model.input),"") ? _U.list([]) : A3($TypeAlias.createTypeAliases,$Types.toValue(model.input),model.name,"");
       var mainBody = function () {
-         var _p7 = model.inputType;
-         switch (_p7.ctor)
-         {case "JsonBlob": return _U.list([A2(viewAllAliases,model.input,aliases)]);
+         var _p10 = model.inputType;
+         switch (_p10.ctor)
+         {case "JsonBlob": return _U.list([A3(viewAllAliases,model.input,model.decoderType,aliases)]);
             case "TypeAliasType": return _U.list([viewTypeAliasStuff(model.input)]);
             case "UnionType": return _U.list([viewAllUnions(model.input)]);
             default: return _U.list([viewAllDecoder(model.input)]);}
@@ -14917,18 +14959,19 @@ Elm.Home.make = function (_elm) {
       A2($Basics._op["++"],
       _U.list([$Util.stylesheetLink("./homepage.css")
               ,function () {
-                 var _p8 = model.inputType;
-                 if (_p8.ctor === "JsonBlob") {
+                 var _p11 = model.inputType;
+                 if (_p11.ctor === "JsonBlob") {
                        return A2(viewNameSelect,address,model.name);
                     } else {
                        return A2($Html.span,_U.list([]),_U.list([]));
                     }
               }()
+              ,A2(viewDecoderTypeInput,address,model.decoderType)
               ,A2(viewInput,address,model.input)]),
       mainBody));
    });
-   var css = function (_p9) {
-      return $Css.stylesheet(A2($Css$Namespace.namespace,cssNamespace,_p9));
+   var css = function (_p12) {
+      return $Css.stylesheet(A2($Css$Namespace.namespace,cssNamespace,_p12));
    }(_U.list([$Css$Elements.body(_U.list([$Css.backgroundColor($ColorScheme.accent1)]))
              ,A2(F2(function (x,y) {    return A2($Css._op["."],x,y);}),Content,_U.list([$Css.width($Css.px(960)),A2($Css.margin2,$Css.zero,$Css.auto)]))
              ,A2($Css.each,
@@ -14953,6 +14996,8 @@ Elm.Home.make = function (_elm) {
                              ,viewTypeAliasStuff: viewTypeAliasStuff
                              ,viewAllUnions: viewAllUnions
                              ,viewInput: viewInput
+                             ,radio: radio
+                             ,viewDecoderTypeInput: viewDecoderTypeInput
                              ,viewErrors: viewErrors
                              ,aliasCss: aliasCss
                              ,viewStatus: viewStatus
@@ -14960,11 +15005,14 @@ Elm.Home.make = function (_elm) {
                              ,view: view
                              ,UpdateInput: UpdateInput
                              ,UpdateName: UpdateName
+                             ,UpdateDecoder: UpdateDecoder
                              ,Noop: Noop
                              ,TypeAliasType: TypeAliasType
                              ,UnionType: UnionType
                              ,JsonBlob: JsonBlob
                              ,DecoderString: DecoderString
+                             ,Original: Original
+                             ,Pipeline: Pipeline
                              ,Model: Model
                              ,update: update
                              ,model: model};
