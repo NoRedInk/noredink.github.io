@@ -14931,7 +14931,7 @@ Elm.Home.make = function (_elm) {
       return A2($Html.textarea,
       _U.list([A3($Html$Events.on,"input",$Html$Events.targetValue,function (_p8) {    return A2($Signal.message,address,UpdateInput(_p8));})
               ,$class(_U.list([Input]))
-              ,$Html$Attributes.placeholder("Put a valid JSON object in here!")]),
+              ,$Html$Attributes.placeholder("Put a valid JSON object in here! Now try a type alias, an union type, or an old-style decoder!")]),
       _U.list([$Html.text(alias)]));
    });
    var viewNameSelect = F2(function (address,name) {
