@@ -15,7 +15,7 @@
 </code></pre>
 <p>This applies elsewhere. Imagine a function like this:</p>
 <pre><code class="lang-elixir">
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do<em>stuff</span></span>(action) <span class="hljs-keyword">do</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do</span></span>_stuff(action) <span class="hljs-keyword">do</span>
     if action == <span class="hljs-string">&quot;Add&quot;</span> <span class="hljs-keyword">do</span>
         <span class="hljs-number">1</span> + <span class="hljs-number">1</span>
     else if action == <span class="hljs-string">&quot;Sub&quot;</span> <span class="hljs-keyword">do</span>
@@ -26,17 +26,17 @@
 <p>where your <code>action</code> is limited to the set <code>[&quot;Add&quot;, &quot;Sub&quot;]</code>. Elixir doesn&#39;t quite have first-class support for representing this kind of fixed data range, but it does have a way of dealing with it nonetheless. For those coming from languages with more powerful forms of pattern matching, this may seem archaic.</p>
 <p>So, let&#39;s build one that with function-based pattern matching:</p>
 <pre><code class="lang-elixir">
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do_stuff</span></span>(<span class="hljs-string">&quot;Add&quot;</span>), <span class="hljs-symbol">do:</span> <span class="hljs-number">1</span> + <span class="hljs-number">1</span>
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do_stuff</span></span>(<span class="hljs-string">&quot;Sub&quot;</span>), <span class="hljs-symbol">do:</span> <span class="hljs-number">1</span> - <span class="hljs-number">1</span>
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do_stuff</span></span>(<span class="hljs-number"></em></span>), <span class="hljs-symbol">do:</span> <span class="hljs-number">0</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do</span></span>_stuff(<span class="hljs-string">&quot;Add&quot;</span>), <span class="hljs-symbol">do:</span> <span class="hljs-number">1</span> + <span class="hljs-number">1</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do</span></span>_stuff(<span class="hljs-string">&quot;Sub&quot;</span>), <span class="hljs-symbol">do:</span> <span class="hljs-number">1</span> - <span class="hljs-number">1</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do</span></span>_stuff(<em>_<span class="hljs-number"></em></span>), <span class="hljs-symbol">do:</span> <span class="hljs-number">0</span>
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">example</span></span> <span class="hljs-keyword">do</span>
-    do<em>stuff(<span class="hljs-string">&quot;Add&quot;</span>)
-    do_stuff(<span class="hljs-string">&quot;Sub&quot;</span>)
-    do_stuff(<span class="hljs-string">&quot;DoesntExist&quot;</span>)
+    <span class="hljs-keyword">do</span>_stuff(<span class="hljs-string">&quot;Add&quot;</span>)
+    <span class="hljs-keyword">do</span>_stuff(<span class="hljs-string">&quot;Sub&quot;</span>)
+    <span class="hljs-keyword">do</span>_stuff(<span class="hljs-string">&quot;DoesntExist&quot;</span>)
 <span class="hljs-keyword">end</span>
 </code></pre>
-<p>Here, <code>do_stuff</code> will do things based on the string you pass it. If you pass it a string of <code>Add</code>, it&#39;ll add 1 to 1. If the value you pass it isn&#39;t one of the explicitly listed values, then it will fall down to the default with <code>def do stuff(</em>)</code>. Underscores are wildcard matches. Patterns in Elixir are matched based on the order they are listed in. Always list wildcard matches last. Interestingly, Erlang&#39;s design principle is not to try to catch all possible cases, but instead let the ones you don&#39;t list fail.</p>
+<p>Here, <code>do_stuff</code> will do things based on the string you pass it. If you pass it a string of <code>Add</code>, it&#39;ll add 1 to 1. If the value you pass it isn&#39;t one of the explicitly listed values, then it will fall down to the default with <code>def do stuff(_)</code>. Underscores are wildcard matches. Patterns in Elixir are matched based on the order they are listed in. Always list wildcard matches last. Interestingly, Erlang&#39;s design principle is not to try to catch all possible cases, but instead let the ones you don&#39;t list fail.</p>
 <p>But if we can prevent something failing, why don&#39;t we?</p>
 <p>Okay, so how do we tie this to Elm? A traditional example might look like pattern matching on the action, then encoding with a name to send to the server. For example,</p>
 <pre><code class="lang-elm">
@@ -63,7 +63,7 @@
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">api</span></span>(conn, params) <span class="hljs-keyword">do</span>
     action = Map.get(params, <span class="hljs-string">&quot;action&quot;</span>)
 
-    json conn, do<em>stuff(action)
+    json conn, <span class="hljs-keyword">do</span>_stuff(action)
 <span class="hljs-keyword">end</span>
 </code></pre>
 <p>As you can see, this is a pretty verbose solution for only two very simple actions. And we haven&#39;t even started to enforce the API yet.</p>
@@ -91,7 +91,7 @@
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">api</span></span>(conn, params) <span class="hljs-keyword">do</span>
     action = Map.get(params, <span class="hljs-string">&quot;ctor&quot;</span>)
 
-    json conn, do_stuff(action)
+    json conn, <span class="hljs-keyword">do</span>_stuff(action)
 <span class="hljs-keyword">end</span>
 </code></pre>
 <p>Great! We&#39;ve just saved ourselves a whole bunch of time, because now we don&#39;t need to write the encoding manaully. Let&#39;s improve our application a bit. Now, instead of just doing an <code>Add</code>, we want to be able to add or subtract two arbietry numbers and run that calculation on the server. Let&#39;s have a look at an example of that</p>
@@ -99,11 +99,10 @@
     = <span class="hljs-type">Add</span> <span class="hljs-type">Int</span> <span class="hljs-type">Int</span>
     | <span class="hljs-type">Sub</span> <span class="hljs-type">Int</span> <span class="hljs-type">Int</span>
 </code></pre>
-<pre><code class="lang-elixir"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do_stuff</span></span>(<span class="hljs-string">&quot;Add&quot;</span>, n, m) <span class="hljs-keyword">do</span> n + m <span class="hljs-keyword">end</span>
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do_stuff</span></span>(<span class="hljs-string">&quot;Sub&quot;</span>, n, m) <span class="hljs-keyword">do</span> n - m <span class="hljs-keyword">end</span>
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do_stuff</span></span>(<span class="hljs-number"></em></span>) <span class="hljs-keyword">do</span> <span class="hljs-number">0</span> <span class="hljs-keyword">end</span>
+<pre><code class="lang-elixir"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do</span></span>_stuff(<span class="hljs-string">&quot;Add&quot;</span>, n, m) <span class="hljs-keyword">do</span> n + m <span class="hljs-keyword">end</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">do</span></span>_stuff(<span class="hljs-string">&quot;Sub&quot;</span>, n, m) <span class="hljs-keyword">do</span> n - m <span class="hljs-keyword">end</span>
 </code></pre>
-<p>Now, here&#39;s a tricky question. How do we give <code>do<em>stuff</code> the two arguments? Let&#39;s test it out with the traditional encoding method:</p>
+<p>Now, here&#39;s a tricky question. How do we give <code>do_stuff</code> the two arguments? Let&#39;s test it out with the traditional encoding method:</p>
 <pre><code class="lang-elm">
 <span class="hljs-title">encodeAction</span> : <span class="hljs-type">Action</span> -&gt; <span class="hljs-type">Json</span>.<span class="hljs-type">Value</span>
 <span class="hljs-title">encodeAction</span> action =
@@ -128,7 +127,7 @@
     n = Map.get(params, <span class="hljs-string">&quot;n&quot;</span>)
     m = Map.get(params, <span class="hljs-string">&quot;m&quot;</span>)
 
-    json conn, do_stuff(action, n, m)
+    json conn, <span class="hljs-keyword">do</span>_stuff(action, n, m)
 <span class="hljs-keyword">end</span>
 </code></pre>
 <p>Suddenly, our server side is less flexible and less useful. What if we wanted to add a constructor <code>AddThree Int Int Int</code> to our <code>Action</code>s? Or what about a constructor like <code>AddStrings String String</code>? Things are gonna get messy pretty fast, especially if we decide to then pass params to each instance and handle the parsing of arguments in there..</p>
@@ -144,11 +143,11 @@
 </code></pre>
 <p>This is obviously an implementation detail! Keep this in mind.</p>
 <p>Now in Elixir, I can have a function that looks a little like this:</p>
-<pre><code class="lang-elixir"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">gather_args</span></span>(<span class="hljs-keyword">nil</span>) <span class="hljs-keyword">do</span> [] <span class="hljs-keyword">end</span>
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">gather_args</span></span>(action) <span class="hljs-keyword">do</span> gather_args(action, <span class="hljs-number">0</span>) <span class="hljs-keyword">end</span>
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">gather_args</span></span>(action, index) <span class="hljs-keyword">do</span>
-    current_index = <span class="hljs-string">&quot;</em><span class="hljs-subst">#{index}</span>&quot;</span>
-    value = Map.get(action, current<em>index)
+<pre><code class="lang-elixir"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">gather</span></span>_args(<span class="hljs-keyword">nil</span>) <span class="hljs-keyword">do</span> [] <span class="hljs-keyword">end</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">gather</span></span>_args(action) <span class="hljs-keyword">do</span> gather_args(action, <span class="hljs-number">0</span>) <span class="hljs-keyword">end</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">gather</span></span>_args(action, index) <span class="hljs-keyword">do</span>
+    current_index = <span class="hljs-string">&quot;_<span class="hljs-subst">#{index}</span>&quot;</span>
+    value = Map.get(action, current_index)
 
     if value == <span class="hljs-keyword">nil</span> <span class="hljs-keyword">do</span>
         [ ]
@@ -163,7 +162,7 @@
 
     all_args = [ action ] ++ args
 
-    json conn, apply(do_stuff, all_args)
+    json conn, apply(<span class="hljs-keyword">do</span>_stuff, all_args)
 <span class="hljs-keyword">end</span>
 </code></pre>
 <p><code>apply</code> takes a function name, and a list of arguments, and expands an array out into a function call, for example like this:</p>
@@ -175,14 +174,14 @@ fn(args[<span class="hljs-number">0</span>], args[<span class="hljs-number">1</s
 <p>For a final comparison, here&#39;s the two different approaches side by side:</p>
 <h2 id="the-new-way">the new way</h2>
 <pre><code class="lang-elixir">
-  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run_action</span></span>(<span class="hljs-string">&quot;Sub&quot;</span>, model, n) <span class="hljs-keyword">do</span> model - n <span class="hljs-keyword">end</span>
-  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run_action</span></span>(<span class="hljs-string">&quot;Add&quot;</span>, model, n) <span class="hljs-keyword">do</span> model + n <span class="hljs-keyword">end</span>
-  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run_action</span></span>(<span class="hljs-string">&quot;AddTwo&quot;</span>, model, n, m) <span class="hljs-keyword">do</span> n + m <span class="hljs-keyword">end</span>
-  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run_action</span></span>(<span class="hljs-string">&quot;RecordAdd&quot;</span>, model, record) <span class="hljs-keyword">do</span>
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>_action(<span class="hljs-string">&quot;Sub&quot;</span>, model, n) <span class="hljs-keyword">do</span> model - n <span class="hljs-keyword">end</span>
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>_action(<span class="hljs-string">&quot;Add&quot;</span>, model, n) <span class="hljs-keyword">do</span> model + n <span class="hljs-keyword">end</span>
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>_action(<span class="hljs-string">&quot;AddTwo&quot;</span>, model, n, m) <span class="hljs-keyword">do</span> n + m <span class="hljs-keyword">end</span>
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>_action(<span class="hljs-string">&quot;RecordAdd&quot;</span>, model, record) <span class="hljs-keyword">do</span>
     add = Map.get(record, <span class="hljs-string">&quot;add&quot;</span>, <span class="hljs-number">0</span>)
     model + add
   <span class="hljs-keyword">end</span>
-  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run_action</span></span>(<span class="hljs-number"></em></span>, model, <span class="hljs-number"><em></span>) <span class="hljs-keyword">do</span> model <span class="hljs-keyword">end</span>
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>_action(\<span class="hljs-number"><em></span>, model, \<span class="hljs-number"></em></span>) <span class="hljs-keyword">do</span> model <span class="hljs-keyword">end</span>
 
   <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">api</span></span>(conn, params) <span class="hljs-keyword">do</span>
     action = Map.get(params, <span class="hljs-string">&quot;action&quot;</span>)
@@ -223,14 +222,14 @@ fn(args[<span class="hljs-number">0</span>], args[<span class="hljs-number">1</s
 </code></pre>
 <h2 id="the-old-way">the old way</h2>
 <pre><code class="lang-elixir">
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run_action</span></span>(<span class="hljs-string">&quot;Sub&quot;</span>, model, n) <span class="hljs-keyword">do</span> model - n <span class="hljs-keyword">end</span>
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run_action</span></span>(<span class="hljs-string">&quot;Add&quot;</span>, model, n) <span class="hljs-keyword">do</span> model + n <span class="hljs-keyword">end</span>
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run_action</span></span>(<span class="hljs-string">&quot;AddTwo&quot;</span>, model, n, m) <span class="hljs-keyword">do</span> n + m <span class="hljs-keyword">end</span>
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run_action</span></span>(<span class="hljs-string">&quot;RecordAdd&quot;</span>, model, record) <span class="hljs-keyword">do</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>_action(<span class="hljs-string">&quot;Sub&quot;</span>, model, n) <span class="hljs-keyword">do</span> model - n <span class="hljs-keyword">end</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>_action(<span class="hljs-string">&quot;Add&quot;</span>, model, n) <span class="hljs-keyword">do</span> model + n <span class="hljs-keyword">end</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>_action(<span class="hljs-string">&quot;AddTwo&quot;</span>, model, n, m) <span class="hljs-keyword">do</span> n + m <span class="hljs-keyword">end</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>_action(<span class="hljs-string">&quot;RecordAdd&quot;</span>, model, record) <span class="hljs-keyword">do</span>
   add = Map.get(record, <span class="hljs-string">&quot;add&quot;</span>, <span class="hljs-number">0</span>)
   model + add
 <span class="hljs-keyword">end</span>
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run_action</span></span>(<span class="hljs-number"></em></span>, model, <span class="hljs-number">_</span>) <span class="hljs-keyword">do</span> model <span class="hljs-keyword">end</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>_action(\<span class="hljs-number"><em></span>, model, \<span class="hljs-number"></em></span>) <span class="hljs-keyword">do</span> model <span class="hljs-keyword">end</span>
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">api</span></span>(conn, params) <span class="hljs-keyword">do</span>
   action = Map.get(params, <span class="hljs-string">&quot;action&quot;</span>)
@@ -307,4 +306,4 @@ fn(args[<span class="hljs-number">0</span>], args[<span class="hljs-number">1</s
 <p>Hopefully you can see some of the benefits in this method. The next step is to automate validation and generation of server-side code to match your client side APIs from your Elm code, but that&#39;s for another blog post.</p>
 <p>I&#39;ve moved these Elixir helper functions out into a package called <a href="https://github.com/elmxir">elmxir</a>. As Elm changes internally, I will keep this package in sync!</p>
 <p>If you want to talk to us about anything in this blog post, both myself and Michael Glass will be at ElixirConfEU.</p>
-</div></div></article><div class="content wrap"><img src=""><br><strong>Noah Hall</strong><br><a href="https://twitter.comeeue56">@eeue56</a><br>Engineer at <a href="http://noredink.com">NoRedInk</a></div></div>
+</div></div></article><div class="content wrap"><img src="https://cloud.githubusercontent.com/assets/1094080/13444265/1aceba3a-dfba-11e5-867b-52bde5a1a81c.png"><br><strong>Noah Hall</strong><br><a href="https://twitter.comeeue56">@eeue56</a><br>Engineer at <a href="http://noredink.com">NoRedInk</a></div></div>
