@@ -9,170 +9,183 @@
 <p>The following examples will show how this has changed, and how to do it in the new world. For the most uses, we can easily replace it with the new syntax.</p>
 <h2 id="map">map</h2>
 <p><code>map</code> would allow you to take a signal of one kind, and turn it to a signal of another kind. This looks like this:</p>
-<pre><code>type <span class="hljs-keyword">alias</span> Model =
-    { currentTime <span class="hljs-symbol">:</span> Time
+<h3 id="0-16">0.16</h3>
+<pre><code class="lang-elm"><span class="hljs-keyword">type</span> <span class="hljs-keyword">alias</span> <span class="hljs-type">Model</span> =
+    { currentTime : <span class="hljs-type">Time</span>
     }
 
-type Action
-    = SetCurrentTime Time
-    | NoOp
+<span class="hljs-keyword">type</span> <span class="hljs-type">Action</span>
+    = <span class="hljs-type">SetCurrentTime</span> <span class="hljs-type">Time</span>
+    | <span class="hljs-type">NoOp</span>
 
-currentTime <span class="hljs-symbol">:</span> Signal Time
-currentTime = Time.every Time.second
+<span class="hljs-title">currentTime</span> : <span class="hljs-type">Signal</span> <span class="hljs-type">Time</span>
+<span class="hljs-title">currentTime</span> = <span class="hljs-type">Time</span>.every <span class="hljs-type">Time</span>.second
 
-setCurrentTime <span class="hljs-symbol">:</span> Signal
-setCurrentTime = Signal.map SetCurrentTime currentTime
+<span class="hljs-title">setCurrentTime</span> : <span class="hljs-type">Signal</span>
+<span class="hljs-title">setCurrentTime</span> = <span class="hljs-type">Signal</span>.map <span class="hljs-type">SetCurrentTime</span> currentTime
 
-update <span class="hljs-symbol">:</span> Action -&gt; Model -&gt; (Model, Effects Action)
-update action model =
-    <span class="hljs-keyword">case</span> action of
-        NoOp -&gt;
-            ( model, Effects.none)
+<span class="hljs-title">update</span> : <span class="hljs-type">Action</span> -&gt; <span class="hljs-type">Model</span> -&gt; (<span class="hljs-type">Model</span>, <span class="hljs-type">Effects</span> <span class="hljs-type">Action</span>)
+<span class="hljs-title">update</span> action model =
+    <span class="hljs-keyword">case</span> action <span class="hljs-keyword">of</span>
+        <span class="hljs-type">NoOp</span> -&gt;
+            ( model, <span class="hljs-type">Effects</span>.none)
 
-        SetCurrentTime time -&gt;
+        <span class="hljs-type">SetCurrentTime</span> time -&gt;
             ( { model | currentTime = time }
-            , Effects.none
+            , <span class="hljs-type">Effects</span>.none
             )
 
-init <span class="hljs-symbol">:</span> Model
-init =
+<span class="hljs-title">init</span> : <span class="hljs-type">Model</span>
+<span class="hljs-title">init</span> =
     { currentTime = <span class="hljs-number">0</span>
     }
 
-view <span class="hljs-symbol">:</span> Signal.Address Action -&gt; Model -&gt; Html
-view address model =
+<span class="hljs-title">view</span> : <span class="hljs-type">Signal</span>.<span class="hljs-type">Address</span> <span class="hljs-type">Action</span> -&gt; <span class="hljs-type">Model</span> -&gt; <span class="hljs-type">Html</span>
+<span class="hljs-title">view</span> address model =
     div
         []
         [ text &lt;| toString &lt;| model.currentTime]
 
-app <span class="hljs-symbol">:</span> StartApp Model Action
-app =
-    StartApp.start
-        { init = (init, Effects.none)
+<span class="hljs-title">app</span> : <span class="hljs-type">StartApp</span> <span class="hljs-type">Model</span> <span class="hljs-type">Action</span>
+<span class="hljs-title">app</span> =
+    <span class="hljs-type">StartApp</span>.start
+        { init = (init, <span class="hljs-type">Effects</span>.none)
         , view = view
         , update = update
         , inputs = [ setCurrentTime ]
         }
 
-main <span class="hljs-symbol">:</span> Signal Html
-main = app.html
-</code></pre><p>In 0.17, this now looks like this:</p>
-<pre><code>type <span class="hljs-keyword">alias</span> Model =
-    { currentTime <span class="hljs-symbol">:</span> Time
+<span class="hljs-title">main</span> : <span class="hljs-type">Signal</span> <span class="hljs-type">Html</span>
+<span class="hljs-title">main</span> = app.html
+</code></pre>
+<h3 id="0-17">0.17</h3>
+<p>In 0.17, this now looks like this:</p>
+<pre><code class="lang-elm"><span class="hljs-keyword">type</span> <span class="hljs-keyword">alias</span> <span class="hljs-type">Model</span> =
+    { currentTime : <span class="hljs-type">Time</span>
     }
 
-type Msg
-    = SetCurrentTime Time
-    | NoOp
+<span class="hljs-keyword">type</span> <span class="hljs-type">Msg</span>
+    = <span class="hljs-type">SetCurrentTime</span> <span class="hljs-type">Time</span>
+    | <span class="hljs-type">NoOp</span>
 
--- Every now takes a <span class="hljs-string">&quot;tagger&quot;</span> function.
--- Each time a second goes by, it will wrap the time with <code>SetCurrentTime</code>
--- <span class="hljs-keyword">and</span> <span class="hljs-keyword">then</span> send this message to the update loop
-setCurrentTime <span class="hljs-symbol">:</span> Sub Msg
-setCurrentTime = Time.every Time.second SetCurrentTime
+<span class="hljs-comment">-- Every now takes a &quot;tagger&quot; function.</span>
+<span class="hljs-comment">-- Each time a second goes by, it will wrap the time with <code>SetCurrentTime</code></span>
+<span class="hljs-comment">-- and then send this message to the update loop</span>
+<span class="hljs-title">setCurrentTime</span> : <span class="hljs-type">Sub</span> <span class="hljs-type">Msg</span>
+<span class="hljs-title">setCurrentTime</span> = <span class="hljs-type">Time</span>.every <span class="hljs-type">Time</span>.second <span class="hljs-type">SetCurrentTime</span>
 
-update <span class="hljs-symbol">:</span> Msg -&gt; Model -&gt; (Model, Cmd Msg)
-update action model =
-    <span class="hljs-keyword">case</span> action of
-        NoOp -&gt;
-            ( model, Cmd.none)
+<span class="hljs-title">update</span> : <span class="hljs-type">Msg</span> -&gt; <span class="hljs-type">Model</span> -&gt; (<span class="hljs-type">Model</span>, <span class="hljs-type">Cmd</span> <span class="hljs-type">Msg</span>)
+<span class="hljs-title">update</span> action model =
+    <span class="hljs-keyword">case</span> action <span class="hljs-keyword">of</span>
+        <span class="hljs-type">NoOp</span> -&gt;
+            ( model, <span class="hljs-type">Cmd</span>.none)
 
-        SetCurrentTime time -&gt;
+        <span class="hljs-type">SetCurrentTime</span> time -&gt;
             ( { model | currentTime = time }
-            , Cmd.none
+            , <span class="hljs-type">Cmd</span>.none
             )
 
-init <span class="hljs-symbol">:</span> Model
-init =
+<span class="hljs-title">init</span> : <span class="hljs-type">Model</span>
+<span class="hljs-title">init</span> =
     { currentTime = <span class="hljs-number">0</span>
     }
 
-view <span class="hljs-symbol">:</span> Model -&gt; Html Action
-view model =
+<span class="hljs-title">view</span> : <span class="hljs-type">Model</span> -&gt; <span class="hljs-type">Html</span> <span class="hljs-type">Action</span>
+<span class="hljs-title">view</span> model =
     div
         []
         [ text &lt;| toString &lt;| model.currentTime]
 
--- Here, we <span class="hljs-keyword">use</span> the model to figure out what we are currently subscribed to
--- We<span class="hljs-string">&#39;ll use this more in the future
-handleSubs : Model -&gt; Sub Action
-handleSubs model =
+<span class="hljs-comment">-- Here, we use the model to figure out what we are currently subscribed to</span>
+<span class="hljs-comment">-- We&#39;ll use this more in the future</span>
+<span class="hljs-title">handleSubs</span> : <span class="hljs-type">Model</span> -&gt; <span class="hljs-type">Sub</span> <span class="hljs-type">Action</span>
+<span class="hljs-title">handleSubs</span> model =
     setCurrentTime
 
-main : Program Never
-main =
-    Html.program
-        { init = (init, Cmd.none)
+<span class="hljs-title">main</span> : <span class="hljs-type">Program</span> <span class="hljs-type">Never</span>
+<span class="hljs-title">main</span> =
+    <span class="hljs-type">Html</span>.program
+        { init = (init, <span class="hljs-type">Cmd</span>.none)
         , view = view
         , update = update
         , subscriptions = handleSubs
-        }</span>
-</code></pre><h2 id="filter">Filter</h2>
+        }
+</code></pre>
+<h2 id="filter">Filter</h2>
 <p>Filters allow you to only listen to values when they pass some evaluation. They&#39;re useful for controlling when things get sent to your update loop. For example, if we don&#39;t want to update the current time, based on whether or not something is even, then we might do something like this:</p>
 <h3 id="0-16">0.16</h3>
-<pre><code>-- only produce a changed value if the time is even
-currentTime <span class="hljs-symbol">:</span> Signal Time
-currentTime =
-    Time.every Time.second
-        |&gt; Signal.filter (\x -&gt; x % <span class="hljs-number">2</span> == <span class="hljs-number">0</span>)
+<pre><code class="lang-elm"><span class="hljs-comment">-- only produce a changed value if the time is even</span>
+<span class="hljs-title">currentTime</span> : <span class="hljs-type">Signal</span> <span class="hljs-type">Time</span>
+<span class="hljs-title">currentTime</span> =
+    <span class="hljs-type">Time</span>.every <span class="hljs-type">Time</span>.second
+        |&gt; <span class="hljs-type">Signal</span>.filter (\x -&gt; x % <span class="hljs-number">2</span> == <span class="hljs-number">0</span>)
 
-setCurrentTime <span class="hljs-symbol">:</span> Signal Action
-setCurrentTime = Signal.map SetCurrentTime currentTime
-</code></pre><h3 id="0-17">0.17</h3>
+<span class="hljs-title">setCurrentTime</span> : <span class="hljs-type">Signal</span> <span class="hljs-type">Action</span>
+<span class="hljs-title">setCurrentTime</span> = <span class="hljs-type">Signal</span>.map <span class="hljs-type">SetCurrentTime</span> currentTime
+</code></pre>
+<h3 id="0-17">0.17</h3>
 <p>In 0.17, we can that too - but it looks like this instead.</p>
-<pre><code>type Msg
-    = SetCurrentTime Time
-    | NoOp
+<pre><code class="lang-elm"><span class="hljs-keyword">type</span> <span class="hljs-type">Msg</span>
+    = <span class="hljs-type">SetCurrentTime</span> <span class="hljs-type">Time</span>
+    | <span class="hljs-type">NoOp</span>
 
-setCurrentTime <span class="hljs-symbol">:</span> Sub Msg
-setCurrentTime =
-    Time.every Time.second
+<span class="hljs-title">setCurrentTime</span> : <span class="hljs-type">Sub</span> <span class="hljs-type">Msg</span>
+<span class="hljs-title">setCurrentTime</span> =
+    <span class="hljs-type">Time</span>.every <span class="hljs-type">Time</span>.second
         |&gt; (\time -&gt;
-            if time % <span class="hljs-number">2</span> == <span class="hljs-number">0</span> <span class="hljs-keyword">then</span>
-                SetCurrentTime time
-            else
-                NoOp
+            <span class="hljs-keyword">if</span> time % <span class="hljs-number">2</span> == <span class="hljs-number">0</span> <span class="hljs-keyword">then</span>
+                <span class="hljs-type">SetCurrentTime</span> time
+            <span class="hljs-keyword">else</span>
+                <span class="hljs-type">NoOp</span>
             )
-</code></pre><h3 id="0-16">0.16</h3>
+</code></pre>
+<h3 id="0-16">0.16</h3>
 <p>What about if we wanted to get the current time, only if a certain boolean was enabled? In</p>
-<pre><code>currentTime <span class="hljs-symbol">:</span> Signal Time
-currentTime =
-    Time.every Time.second
-        |&gt; Signal.filter (\x -&gt; x % <span class="hljs-number">2</span> == <span class="hljs-number">0</span>)
+<pre><code class="lang-elm"><span class="hljs-title">currentTime</span> : <span class="hljs-type">Signal</span> <span class="hljs-type">Time</span>
+<span class="hljs-title">currentTime</span> =
+    <span class="hljs-type">Time</span>.every <span class="hljs-type">Time</span>.second
+        |&gt; <span class="hljs-type">Signal</span>.filter (\x -&gt; x % <span class="hljs-number">2</span> == <span class="hljs-number">0</span>)
 
 
-setCurrentTime <span class="hljs-symbol">:</span> Signal Action
-setCurrentTime =
-    Signal.map2 (\time model -&gt; if model.isListening <span class="hljs-keyword">then</span> SetCurrentTime Time else NoOp) currentTime app.model
-</code></pre><h3 id="0-17">0.17</h3>
-<p>In 0.17, this logic is handled in our <code>handleSubs</code> function. This is the reason why we pass in the <code>model</code> to the subscriptions function - it&#39;s important to be able to change what we are subscribed to.</p>
-<pre><code>
-handleSubs <span class="hljs-symbol">:</span> Model -&gt; Sub Action
-handleSubs model =
-    if model.isListening <span class="hljs-keyword">then</span>
-        Time.every Time.second SetCurrentTime
-    else
-        Sub.none
-</code></pre><p>The cool thing about subscriptions in 0.17 is that if we aren&#39;t currently subscribed to a subscription, that given subscription will stop being listened to entirely. This was not the case in 0.16</p>
+<span class="hljs-title">setCurrentTime</span> : <span class="hljs-type">Signal</span> <span class="hljs-type">Action</span>
+<span class="hljs-title">setCurrentTime</span> =
+    <span class="hljs-type">Signal</span>.map2 (\time model -&gt; <span class="hljs-keyword">if</span> model.isListening <span class="hljs-keyword">then</span> <span class="hljs-type">SetCurrentTime</span> <span class="hljs-type">Time</span> <span class="hljs-keyword">else</span> <span class="hljs-type">NoOp</span>) currentTime app.model
+
+<code>elm
+
+### &lt;span class=&quot;hljs-number&quot;&gt;0.17&lt;/span&gt;
+
+&lt;span class=&quot;hljs-type&quot;&gt;In&lt;/span&gt; &lt;span class=&quot;hljs-number&quot;&gt;0.17&lt;/span&gt;, this logic is handled &lt;span class=&quot;hljs-keyword&quot;&gt;in&lt;/span&gt; our `handleSubs` function. &lt;span class=&quot;hljs-type&quot;&gt;This&lt;/span&gt; is the reason why we pass &lt;span class=&quot;hljs-keyword&quot;&gt;in&lt;/span&gt; the `model` to the subscriptions function - it&#39;s important to be able to change what we are subscribed to.</code>elm
+
+<span class="hljs-title">handleSubs</span> : <span class="hljs-type">Model</span> -&gt; <span class="hljs-type">Sub</span> <span class="hljs-type">Action</span>
+<span class="hljs-title">handleSubs</span> model =
+    <span class="hljs-keyword">if</span> model.isListening <span class="hljs-keyword">then</span>
+        <span class="hljs-type">Time</span>.every <span class="hljs-type">Time</span>.second <span class="hljs-type">SetCurrentTime</span>
+    <span class="hljs-keyword">else</span>
+        <span class="hljs-type">Sub</span>.none
+</code></pre>
+<p>The cool thing about subscriptions in 0.17 is that if we aren&#39;t currently subscribed to a subscription, that given subscription will stop being listened to entirely. This was not the case in 0.16</p>
 <h2 id="merge">Merge</h2>
 <p>Merge allows you to take two signals of the same type, and create a new signal that will produce values when either of the signals merged changes. In the case of a collision, the left signal would win.</p>
 <h3 id="0-16">0.16</h3>
 <p>In 0.16, it would look something like this:</p>
-<pre><code>setMouseMove <span class="hljs-symbol">:</span> Signal Action
-setMouseMove = Signal.map SetMouseMove Mouse.moves
+<pre><code class="lang-elm"><span class="hljs-title">setMouseMove</span> : <span class="hljs-type">Signal</span> <span class="hljs-type">Action</span>
+<span class="hljs-title">setMouseMove</span> = <span class="hljs-type">Signal</span>.map <span class="hljs-type">SetMouseMove</span> <span class="hljs-type">Mouse</span>.moves
 
-allSignals <span class="hljs-symbol">:</span> Signal Action
-allSignals =
-    Signal.merge setCurrentTime setMouseMove
-</code></pre><h3 id="0-17">0.17</h3>
+<span class="hljs-title">allSignals</span> : <span class="hljs-type">Signal</span> <span class="hljs-type">Action</span>
+<span class="hljs-title">allSignals</span> =
+    <span class="hljs-type">Signal</span>.merge setCurrentTime setMouseMove
+</code></pre>
+<h3 id="0-17">0.17</h3>
 <p>In 0.17, this is pretty much the same. Instead of <code>merge</code>, we use <code>batch</code>. This is similiar to <code>mergeMany</code> in 0.16, or the concept of <code>Effects.batch</code>.</p>
-<pre><code>
-handleSubs <span class="hljs-symbol">:</span> Model -&gt; Sub Action
-handleSubs model =
-    Sub.batch
-        [ Time.every Time.second SetCurrentTime
-        , Mouse.moves SetMouseMove
+<pre><code class="lang-elm">
+<span class="hljs-title">handleSubs</span> : <span class="hljs-type">Model</span> -&gt; <span class="hljs-type">Sub</span> <span class="hljs-type">Action</span>
+<span class="hljs-title">handleSubs</span> model =
+    <span class="hljs-type">Sub</span>.batch
+        [ <span class="hljs-type">Time</span>.every <span class="hljs-type">Time</span>.second <span class="hljs-type">SetCurrentTime</span>
+        , <span class="hljs-type">Mouse</span>.moves <span class="hljs-type">SetMouseMove</span>
         ]
-</code></pre><h2 id="foldp">Foldp</h2>
+</code></pre>
+<h2 id="foldp">Foldp</h2>
 <p>Foldp is complicated. If you were using foldp before, then you probably want to be using just an update loop now. If you had a legitimate use cases for using foldp separately from your main model or update function, then let us know on #elm-dev Slack channel or the elm-dev mailing list.</p>
 </div></div></article><div class="content wrap"><img src="https://cloud.githubusercontent.com/assets/1094080/13444265/1aceba3a-dfba-11e5-867b-52bde5a1a81c.png"><br><strong>Noah Hall</strong><br><a href="https://twitter.comeeue56">@eeue56</a><br>Engineer at <a href="http://noredink.com">NoRedInk</a></div></div>
