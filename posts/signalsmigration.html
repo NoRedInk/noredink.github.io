@@ -1,0 +1,178 @@
+<div><header><link rel="stylesheet" type="text/css" href="/style.css"><link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Gentium+Book+Basic"><script src="/Native/Highlight.js"></script><link rel="stylesheet" type="text/css" href="/default.css"><a><img src="/logo.png" class="logo"></a><a><h1>Tech</h1></a></header><article class="content wrap"><h2 class="post-title">Migrating signal usage from Elm 0.16 to 0.17.</h2><div class="post text"><div><p><h1 id="moving-signal-transformations-away-from-signals-">Moving signal transformations away from signals.</h1></p>
+<p>In Elm 0.16, in order to manipulate and transform inputs from signals, we had four main functions at hand:</p>
+<ul>
+<li><code>map</code>, for transformations</li>
+<li><code>filter</code>, for filtering</li>
+<li><code>merge</code>, for joining</li>
+<li><code>foldp</code>, for stateful transformations over time</li>
+</ul>
+<p>The following examples will show how this has changed, and how to do it in the new world. For the most uses, we can easily replace it with the new syntax.</p>
+<h2 id="map">map</h2>
+<p><code>map</code> would allow you to take a signal of one kind, and turn it to a signal of another kind. This looks like this:</p>
+<pre><code>type <span class="hljs-keyword">alias</span> Model =
+    { currentTime <span class="hljs-symbol">:</span> Time
+    }
+
+type Action
+    = SetCurrentTime Time
+    | NoOp
+
+currentTime <span class="hljs-symbol">:</span> Signal Time
+currentTime = Time.every Time.second
+
+setCurrentTime <span class="hljs-symbol">:</span> Signal
+setCurrentTime = Signal.map SetCurrentTime currentTime
+
+update <span class="hljs-symbol">:</span> Action -&gt; Model -&gt; (Model, Effects Action)
+update action model =
+    <span class="hljs-keyword">case</span> action of
+        NoOp -&gt;
+            ( model, Effects.none)
+
+        SetCurrentTime time -&gt;
+            ( { model | currentTime = time }
+            , Effects.none
+            )
+
+init <span class="hljs-symbol">:</span> Model
+init =
+    { currentTime = <span class="hljs-number">0</span>
+    }
+
+view <span class="hljs-symbol">:</span> Signal.Address Action -&gt; Model -&gt; Html
+view address model =
+    div
+        []
+        [ text &lt;| toString &lt;| model.currentTime]
+
+app <span class="hljs-symbol">:</span> StartApp Model Action
+app =
+    StartApp.start
+        { init = (init, Effects.none)
+        , view = view
+        , update = update
+        , inputs = [ setCurrentTime ]
+        }
+
+main <span class="hljs-symbol">:</span> Signal Html
+main = app.html
+</code></pre><p>In 0.17, this now looks like this:</p>
+<pre><code>type <span class="hljs-keyword">alias</span> Model =
+    { currentTime <span class="hljs-symbol">:</span> Time
+    }
+
+type Msg
+    = SetCurrentTime Time
+    | NoOp
+
+-- Every now takes a <span class="hljs-string">&quot;tagger&quot;</span> function.
+-- Each time a second goes by, it will wrap the time with <code>SetCurrentTime</code>
+-- <span class="hljs-keyword">and</span> <span class="hljs-keyword">then</span> send this message to the update loop
+setCurrentTime <span class="hljs-symbol">:</span> Sub Msg
+setCurrentTime = Time.every Time.second SetCurrentTime
+
+update <span class="hljs-symbol">:</span> Msg -&gt; Model -&gt; (Model, Cmd Msg)
+update action model =
+    <span class="hljs-keyword">case</span> action of
+        NoOp -&gt;
+            ( model, Cmd.none)
+
+        SetCurrentTime time -&gt;
+            ( { model | currentTime = time }
+            , Cmd.none
+            )
+
+init <span class="hljs-symbol">:</span> Model
+init =
+    { currentTime = <span class="hljs-number">0</span>
+    }
+
+view <span class="hljs-symbol">:</span> Model -&gt; Html Action
+view model =
+    div
+        []
+        [ text &lt;| toString &lt;| model.currentTime]
+
+-- Here, we <span class="hljs-keyword">use</span> the model to figure out what we are currently subscribed to
+-- We<span class="hljs-string">&#39;ll use this more in the future
+handleSubs : Model -&gt; Sub Action
+handleSubs model =
+    setCurrentTime
+
+main : Program Never
+main =
+    Html.program
+        { init = (init, Cmd.none)
+        , view = view
+        , update = update
+        , subscriptions = handleSubs
+        }</span>
+</code></pre><h2 id="filter">Filter</h2>
+<p>Filters allow you to only listen to values when they pass some evaluation. They&#39;re useful for controlling when things get sent to your update loop. For example, if we don&#39;t want to update the current time, based on whether or not something is even, then we might do something like this:</p>
+<h3 id="0-16">0.16</h3>
+<pre><code>-- only produce a changed value if the time is even
+currentTime <span class="hljs-symbol">:</span> Signal Time
+currentTime =
+    Time.every Time.second
+        |&gt; Signal.filter (\x -&gt; x % <span class="hljs-number">2</span> == <span class="hljs-number">0</span>)
+
+setCurrentTime <span class="hljs-symbol">:</span> Signal Action
+setCurrentTime = Signal.map SetCurrentTime currentTime
+</code></pre><h3 id="0-17">0.17</h3>
+<p>In 0.17, we can that too - but it looks like this instead.</p>
+<pre><code>type Msg
+    = SetCurrentTime Time
+    | NoOp
+
+setCurrentTime <span class="hljs-symbol">:</span> Sub Msg
+setCurrentTime =
+    Time.every Time.second
+        |&gt; (\time -&gt;
+            if time % <span class="hljs-number">2</span> == <span class="hljs-number">0</span> <span class="hljs-keyword">then</span>
+                SetCurrentTime time
+            else
+                NoOp
+            )
+</code></pre><h3 id="0-16">0.16</h3>
+<p>What about if we wanted to get the current time, only if a certain boolean was enabled? In</p>
+<pre><code>currentTime <span class="hljs-symbol">:</span> Signal Time
+currentTime =
+    Time.every Time.second
+        |&gt; Signal.filter (\x -&gt; x % <span class="hljs-number">2</span> == <span class="hljs-number">0</span>)
+
+
+setCurrentTime <span class="hljs-symbol">:</span> Signal Action
+setCurrentTime =
+    Signal.map2 (\time model -&gt; if model.isListening <span class="hljs-keyword">then</span> SetCurrentTime Time else NoOp) currentTime app.model
+</code></pre><h3 id="0-17">0.17</h3>
+<p>In 0.17, this logic is handled in our <code>handleSubs</code> function. This is the reason why we pass in the <code>model</code> to the subscriptions function - it&#39;s important to be able to change what we are subscribed to.</p>
+<pre><code>
+handleSubs <span class="hljs-symbol">:</span> Model -&gt; Sub Action
+handleSubs model =
+    if model.isListening <span class="hljs-keyword">then</span>
+        Time.every Time.second SetCurrentTime
+    else
+        Sub.none
+</code></pre><p>The cool thing about subscriptions in 0.17 is that if we aren&#39;t currently subscribed to a subscription, that given subscription will stop being listened to entirely. This was not the case in 0.16</p>
+<h2 id="merge">Merge</h2>
+<p>Merge allows you to take two signals of the same type, and create a new signal that will produce values when either of the signals merged changes. In the case of a collision, the left signal would win.</p>
+<h3 id="0-16">0.16</h3>
+<p>In 0.16, it would look something like this:</p>
+<pre><code>setMouseMove <span class="hljs-symbol">:</span> Signal Action
+setMouseMove = Signal.map SetMouseMove Mouse.moves
+
+allSignals <span class="hljs-symbol">:</span> Signal Action
+allSignals =
+    Signal.merge setCurrentTime setMouseMove
+</code></pre><h3 id="0-17">0.17</h3>
+<p>In 0.17, this is pretty much the same. Instead of <code>merge</code>, we use <code>batch</code>. This is similiar to <code>mergeMany</code> in 0.16, or the concept of <code>Effects.batch</code>.</p>
+<pre><code>
+handleSubs <span class="hljs-symbol">:</span> Model -&gt; Sub Action
+handleSubs model =
+    Sub.batch
+        [ Time.every Time.second SetCurrentTime
+        , Mouse.moves SetMouseMove
+        ]
+</code></pre><h2 id="foldp">Foldp</h2>
+<p>Foldp is complicated. If you were using foldp before, then you probably want to be using just an update loop now. If you had a legitimate use cases for using foldp separately from your main model or update function, then let us know on #elm-dev Slack channel or the elm-dev mailing list.</p>
+</div></div></article><div class="content wrap"><img src="https://cloud.githubusercontent.com/assets/1094080/13444265/1aceba3a-dfba-11e5-867b-52bde5a1a81c.png"><br><strong>Noah Hall</strong><br><a href="https://twitter.comeeue56">@eeue56</a><br>Engineer at <a href="http://noredink.com">NoRedInk</a></div></div>
