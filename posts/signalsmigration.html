@@ -140,7 +140,7 @@
             )
 </code></pre>
 <h3 id="0-16">0.16</h3>
-<p>What about if we wanted to get the current time, only if a certain boolean was enabled? In</p>
+<p>What about if we wanted to get the current time, only if a certain boolean was enabled?</p>
 <pre><code class="lang-elm"><span class="hljs-title">currentTime</span> : <span class="hljs-type">Signal</span> <span class="hljs-type">Time</span>
 <span class="hljs-title">currentTime</span> =
     <span class="hljs-type">Time</span>.every <span class="hljs-type">Time</span>.second
@@ -149,14 +149,11 @@
 
 <span class="hljs-title">setCurrentTime</span> : <span class="hljs-type">Signal</span> <span class="hljs-type">Action</span>
 <span class="hljs-title">setCurrentTime</span> =
-    <span class="hljs-type">Signal</span>.map2 (\time model -&gt; <span class="hljs-keyword">if</span> model.isListening <span class="hljs-keyword">then</span> <span class="hljs-type">SetCurrentTime</span> <span class="hljs-type">Time</span> <span class="hljs-keyword">else</span> <span class="hljs-type">NoOp</span>) currentTime app.model
-
-<code>elm
-
-### &lt;span class=&quot;hljs-number&quot;&gt;0.17&lt;/span&gt;
-
-&lt;span class=&quot;hljs-type&quot;&gt;In&lt;/span&gt; &lt;span class=&quot;hljs-number&quot;&gt;0.17&lt;/span&gt;, this logic is handled &lt;span class=&quot;hljs-keyword&quot;&gt;in&lt;/span&gt; our `handleSubs` function. &lt;span class=&quot;hljs-type&quot;&gt;This&lt;/span&gt; is the reason why we pass &lt;span class=&quot;hljs-keyword&quot;&gt;in&lt;/span&gt; the `model` to the subscriptions function - it&#39;s important to be able to change what we are subscribed to.</code>elm
-
+    <span class="hljs-type">Signal</span>.map2 (\time model -&gt; <span class="hljs-keyword">if</span> model.isListening <span class="hljs-keyword">then</span> <span class="hljs-type">SetCurrentTime</span> <span class="hljs-type">Time</span> <span class="hljs-keyword">else</span> <span class="hljs-type">NoOp</span>) currentTime app.model)
+</code></pre>
+<h3 id="0-17">0.17</h3>
+<p>In 0.17, this logic is handled in our <code>handleSubs</code> function. This is the reason why we pass in the <code>model</code> to the subscriptions function - it&#39;s important to be able to change what we are subscribed to.</p>
+<pre><code class="lang-elm">
 <span class="hljs-title">handleSubs</span> : <span class="hljs-type">Model</span> -&gt; <span class="hljs-type">Sub</span> <span class="hljs-type">Action</span>
 <span class="hljs-title">handleSubs</span> model =
     <span class="hljs-keyword">if</span> model.isListening <span class="hljs-keyword">then</span>
